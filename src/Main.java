@@ -1,19 +1,17 @@
-import dao.SalleDAO;
-import model.Salle;
+import dao.BatimentDAO;
+import model.Batiment;
 import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
 
-        SalleDAO salleDAO = new SalleDAO();
+        BatimentDAO dao = new BatimentDAO();
 
-        // Récupère toutes les salles de la base
-        List<Salle> salles = salleDAO.getToutesLesSalles();
-
-        // Affiche chaque salle dans la console
-        System.out.println("=== Liste des salles ===");
-        for (Salle s : salles) {
-            System.out.println(s);
+        // Affiche tous les bâtiments
+        List<Batiment> batiments = dao.getTousLesBatiments();
+        System.out.println("=== Liste des bâtiments ===");
+        for (Batiment b : batiments) {
+            System.out.println(b);
         }
     }
 }
