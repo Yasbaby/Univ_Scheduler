@@ -2,6 +2,17 @@
   <library name="mysql-connector-j-9.6.0">
     <CLASSES>
       <root url="jar://$USER_HOME$/Downloads/mysql-connector-j-9.6.0/mysql-connector-j-9.6.0/mysql-connector-j-9.6.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/javafx.base.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/javafx.controls.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/javafx.fxml.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/javafx.graphics.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/javafx.media.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/javafx.swing.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/javafx.web.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/javafx-swt.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/jdk.jsobject.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/jfx.incubator.input.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../openjfx-25.0.2_windows-x64_bin-sdk/javafx-sdk-25.0.2/lib/jfx.incubator.richtext.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

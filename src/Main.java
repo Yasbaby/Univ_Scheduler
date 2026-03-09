@@ -1,16 +1,22 @@
-import dao.ConflitDAO;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
 
-public class Main {
+public class Main extends Application {
+
+    @Override
+    public void start(Stage stage) {
+        Label label = new Label("🎓 Bienvenue sur UNIV-SCHEDULER !");
+        StackPane root = new StackPane(label);
+        Scene scene = new Scene(root, 800, 600);
+        stage.setTitle("UNIV-SCHEDULER");
+        stage.setScene(scene);
+        stage.show();
+    }
+
     public static void main(String[] args) {
-
-        ConflitDAO conflitDAO = new ConflitDAO();
-
-        // Test 1 : salle 1, enseignant 3, créneau 1 → déjà utilisés !
-        String resultat1 = conflitDAO.verifierConflits(1, 3, 1, 25);
-        System.out.println("Test 1 : " + resultat1);
-
-        // Test 2 : salle 3, enseignant 4, créneau 4 → disponibles
-        String resultat2 = conflitDAO.verifierConflits(3, 4, 4, 20);
-        System.out.println("Test 2 : " + resultat2);
+        launch(args);
     }
 }
