@@ -1,17 +1,16 @@
-import dao.BatimentDAO;
-import model.Batiment;
+import dao.CoursDAO;
+import model.Cours;
 import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
 
-        BatimentDAO dao = new BatimentDAO();
+        CoursDAO dao = new CoursDAO();
 
-        // Affiche tous les bâtiments
-        List<Batiment> batiments = dao.getTousLesBatiments();
-        System.out.println("=== Liste des bâtiments ===");
-        for (Batiment b : batiments) {
-            System.out.println(b);
+        List<Cours> cours = dao.getTousLesCours();
+        System.out.println("=== Liste des cours ===");
+        for (Cours c : cours) {
+            System.out.println(c);
         }
     }
 }
