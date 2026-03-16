@@ -34,5 +34,36 @@ public class SalleDAO {
         return salles;
     }
 
+    public boolean ajouterSalle(Salle salle) {
+        String sql = "INSERT INTO salle (numero, capacite, type, batiment_id) VALUES (?, ?, ?, ?)";
+
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, salle.getNumero());
+            ps.setInt   (2, salle.getCapacite());
+            ps.setString(3, salle.getType());
+            ps.setInt   (4, salle.getBatimentId());
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("❌ Erreur : " + e.getMessage());
+            return false;
+        }
+    }
+    public boolean supprimer(int id) {
+        String sql = "DELETE FROM salle WHERE id = ?";
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, id);
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("❌ Erreur : " + e.getMessage());
+            return false;
+        }
+    }
+
 
 }

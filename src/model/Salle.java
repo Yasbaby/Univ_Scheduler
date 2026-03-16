@@ -6,6 +6,7 @@ public class Salle {
     private int capacite;
     private String type;
     private boolean disponible;
+    private int batimentId;
 
     public int getId() {
         return id;
@@ -46,6 +47,10 @@ public class Salle {
     public void setDisponible(boolean disponible) {
         this.disponible = disponible;
     }
+
+
+    public int getBatimentId() { return batimentId; }
+    public void setBatimentId(int batimentId) { this.batimentId = batimentId; }
 
     @Override
     public String toString() {
