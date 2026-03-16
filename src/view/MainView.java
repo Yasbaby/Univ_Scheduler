@@ -102,6 +102,11 @@ public class MainView extends Application {
         Button btnCours     = createMenuButton("📚  Cours");
         Button btnBatiments = createMenuButton("🏢  Bâtiments");
         Button btnEmploi    = createMenuButton("🗓️  Emploi du temps");
+        Button btnRecherche = createMenuButton("🔍  Rechercher salle");
+        btnRecherche.setOnAction(e -> {
+            setActif(btnRecherche);
+            showRechercherSalle();
+        });
 
         btnDash.setOnAction(e -> { setActif(btnDash); showDashboard(); });
         btnSalles.setOnAction(e -> { setActif(btnSalles); showSalles(); });
@@ -129,7 +134,7 @@ public class MainView extends Application {
 
         setActif(btnDash);
         menu.getChildren().addAll(menuTitre, btnDash, btnSalles,
-                btnCours, btnBatiments, btnEmploi, btnConflits, sep, infoTitre, info);
+                btnCours, btnBatiments, btnEmploi, btnConflits, btnRecherche, sep, infoTitre, info);
         return menu;
     }
 
@@ -845,6 +850,195 @@ public class MainView extends Application {
 
         box.getChildren().addAll(icone, details);
         return box;
+    }
+    private void showRechercherSalle() {
+        VBox panel = new VBox(15);
+        panel.setPadding(new Insets(5));
+
+        Label titre = new Label("🔍 Rechercher une Salle Disponible");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        Label sousTitre = new Label("Trouvez une salle libre selon vos critères");
+        sousTitre.setFont(Font.font("Arial", 13));
+        sousTitre.setTextFill(Color.GRAY);
+
+        // ── Formulaire de recherche ──
+        HBox formulaire = new HBox(15);
+        formulaire.setPadding(new Insets(20));
+        formulaire.setAlignment(Pos.CENTER_LEFT);
+        formulaire.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+        );
+
+        // Jour
+        VBox boxJour = new VBox(5);
+        Label lblJour = new Label("Jour :");
+        lblJour.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        ComboBox<String> cbJour = new ComboBox<>();
+        cbJour.getItems().addAll("LUNDI", "MARDI", "MERCREDI",
+                "JEUDI", "VENDREDI", "SAMEDI");
+        cbJour.setPromptText("Choisir un jour");
+        cbJour.setPrefWidth(150);
+        boxJour.getChildren().addAll(lblJour, cbJour);
+
+        // Heure
+        VBox boxHeure = new VBox(5);
+        Label lblHeure = new Label("Heure début :");
+        lblHeure.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        ComboBox<String> cbHeure = new ComboBox<>();
+        cbHeure.getItems().addAll("08:00:00", "10:00:00", "12:00:00",
+                "14:00:00", "16:00:00");
+        cbHeure.setPromptText("Choisir une heure");
+        cbHeure.setPrefWidth(150);
+        boxHeure.getChildren().addAll(lblHeure, cbHeure);
+
+        // Capacité minimale
+        VBox boxCapacite = new VBox(5);
+        Label lblCapacite = new Label("Capacité minimale :");
+        lblCapacite.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        TextField tfCapacite = new TextField();
+        tfCapacite.setPromptText("ex: 30");
+        tfCapacite.setPrefWidth(120);
+        boxCapacite.getChildren().addAll(lblCapacite, tfCapacite);
+
+        // Type de salle
+        VBox boxType = new VBox(5);
+        Label lblType = new Label("Type de salle :");
+        lblType.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        ComboBox<String> cbType = new ComboBox<>();
+        cbType.getItems().addAll("Tous", "TD", "TP", "AMPHI", "REUNION");
+        cbType.setValue("Tous");
+        cbType.setPrefWidth(130);
+        boxType.getChildren().addAll(lblType, cbType);
+
+        // Bouton rechercher
+        VBox boxBtn = new VBox(5);
+        Label lblVide = new Label(" ");
+        Button btnRechercher = createBouton("🔍 Rechercher", BLEU_MID);
+        btnRechercher.setPrefHeight(32);
+        boxBtn.getChildren().addAll(lblVide, btnRechercher);
+
+        formulaire.getChildren().addAll(boxJour, boxHeure, boxCapacite, boxType, boxBtn);
+
+        // ── Résultats ──
+        Label titreResultats = new Label("Résultats :");
+        titreResultats.setFont(Font.font("Arial", FontWeight.BOLD, 15));
+        titreResultats.setTextFill(Color.web(BLEU_FONCE));
+
+        VBox resultats = new VBox(10);
+
+        // Action recherche
+        btnRechercher.setOnAction(e -> {
+            resultats.getChildren().clear();
+
+            if (cbJour.getValue() == null || cbHeure.getValue() == null) {
+                Label lblErr = new Label("⚠️ Sélectionne un jour et une heure !");
+                lblErr.setTextFill(Color.RED);
+                resultats.getChildren().add(lblErr);
+                return;
+            }
+
+            String jour  = cbJour.getValue();
+            String heure = cbHeure.getValue();
+            int capaciteMin = tfCapacite.getText().isEmpty() ? 0
+                    : Integer.parseInt(tfCapacite.getText());
+            String type = cbType.getValue().equals("Tous") ? null : cbType.getValue();
+
+            // Chercher les salles occupées sur ce créneau
+            CoursDAO coursDAO = new CoursDAO();
+            List<Cours> coursList = coursDAO.getTousLesCours();
+
+            // IDs des salles occupées
+            java.util.Set<Integer> sallesOccupees = new java.util.HashSet<>();
+            for (Cours c : coursList) {
+                if (c.getCreneau() != null) {
+                    String jourCours  = c.getCreneau().getJour().name();
+                    String heureCours = c.getCreneau().getHeureDebut().toString();
+                    if (jourCours.equals(jour) && (heureCours + ":00").equals(heure)) {
+                        sallesOccupees.add(c.getSalleId());
+                    }
+                }
+            }
+
+            // Filtrer les salles disponibles
+            SalleDAO salleDAO = new SalleDAO();
+            List<Salle> toutes = salleDAO.getToutesLesSalles();
+            List<Salle> disponibles = new java.util.ArrayList<>();
+
+            for (Salle s : toutes) {
+                if (sallesOccupees.contains(s.getId())) continue;
+                if (s.getCapacite() < capaciteMin) continue;
+                if (type != null && !s.getType().equals(type)) continue;
+                disponibles.add(s);
+            }
+
+            if (disponibles.isEmpty()) {
+                HBox aucune = new HBox();
+                aucune.setPadding(new Insets(20));
+                aucune.setAlignment(Pos.CENTER);
+                aucune.setStyle(
+                        "-fx-background-color: white;" +
+                                "-fx-background-radius: 8;"
+                );
+                Label lblAucune = new Label("❌ Aucune salle disponible pour ce créneau.");
+                lblAucune.setTextFill(Color.RED);
+                lblAucune.setFont(Font.font("Arial", 14));
+                aucune.getChildren().add(lblAucune);
+                resultats.getChildren().add(aucune);
+            } else {
+                for (Salle s : disponibles) {
+                    HBox card = new HBox(15);
+                    card.setPadding(new Insets(15));
+                    card.setAlignment(Pos.CENTER_LEFT);
+                    card.setStyle(
+                            "-fx-background-color: white;" +
+                                    "-fx-background-radius: 8;" +
+                                    "-fx-border-color: " + VERT + ";" +
+                                    "-fx-border-width: 0 0 0 5;" +
+                                    "-fx-border-radius: 8;" +
+                                    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+                    );
+
+                    Label ico = new Label("🏫");
+                    ico.setFont(Font.font("Arial", 28));
+
+                    VBox details = new VBox(4);
+                    HBox.setHgrow(details, Priority.ALWAYS);
+
+                    Label lblNom = new Label("Salle " + s.getNumero());
+                    lblNom.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+                    lblNom.setTextFill(Color.web(BLEU_FONCE));
+
+                    Label lblInfo = new Label(
+                            "Type : " + s.getType() +
+                                    "   |   Capacité : " + s.getCapacite() + " places"
+                    );
+                    lblInfo.setFont(Font.font("Arial", 12));
+                    lblInfo.setTextFill(Color.GRAY);
+
+                    Label lblDispo = new Label("✅ Disponible le " + jour +
+                            " à " + heure.substring(0, 5));
+                    lblDispo.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+                    lblDispo.setTextFill(Color.web(VERT));
+
+                    details.getChildren().addAll(lblNom, lblInfo, lblDispo);
+                    card.getChildren().addAll(ico, details);
+                    resultats.getChildren().add(card);
+                }
+            }
+        });
+
+        ScrollPane scroll = new ScrollPane(resultats);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: transparent;");
+        scroll.setPrefHeight(400);
+
+        panel.getChildren().addAll(titre, sousTitre, formulaire,
+                titreResultats, scroll);
+        contentArea.getChildren().setAll(panel);
     }
         public static void main(String[] args) {
             Application.launch(MainView.class, args);
