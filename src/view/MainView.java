@@ -3,6 +3,7 @@ package view;
 import dao.SalleDAO;
 import dao.CoursDAO;
 import dao.BatimentDAO;
+import dao.ConflitDAO;
 import model.Salle;
 import model.Cours;
 import javafx.application.Application;
@@ -19,6 +20,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import java.util.List;
+import javafx.scene.chart.*;
 
 public class MainView extends Application {
 
@@ -109,6 +111,8 @@ public class MainView extends Application {
             setActif(btnEmploi);
             contentArea.getChildren().setAll(new EmploiDuTempsView().getView());
         });
+        Button btnConflits = createMenuButton("⚠️  Conflits");
+        btnConflits.setOnAction(e -> { setActif(btnConflits); showConflits(); });
 
         Separator sep = new Separator();
         sep.setStyle("-fx-background-color: #2E6DA4;");
@@ -125,7 +129,7 @@ public class MainView extends Application {
 
         setActif(btnDash);
         menu.getChildren().addAll(menuTitre, btnDash, btnSalles,
-                btnCours, btnBatiments, btnEmploi, sep, infoTitre, info);
+                btnCours, btnBatiments, btnEmploi, btnConflits, sep, infoTitre, info);
         return menu;
     }
 
@@ -180,6 +184,7 @@ public class MainView extends Application {
         VBox panel = new VBox(20);
         panel.setPadding(new Insets(5));
 
+        // Titre
         Label titre = new Label("🏠 Tableau de bord");
         titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
         titre.setTextFill(Color.web(BLEU_FONCE));
@@ -188,31 +193,102 @@ public class MainView extends Application {
         sousTitre.setFont(Font.font("Arial", 13));
         sousTitre.setTextFill(Color.GRAY);
 
-        SalleDAO salleDAO = new SalleDAO();
-        CoursDAO coursDAO = new CoursDAO();
-        BatimentDAO batDAO = new BatimentDAO();
+        // Données
+        SalleDAO salleDAO   = new SalleDAO();
+        CoursDAO coursDAO   = new CoursDAO();
+        BatimentDAO batDAO  = new BatimentDAO();
 
-        int nbSalles    = salleDAO.getToutesLesSalles().size();
-        int nbCours     = coursDAO.getTousLesCours().size();
-        int nbBatiments = batDAO.getTousLesBatiments().size();
+        List<Salle> salles      = salleDAO.getToutesLesSalles();
+        List<Cours> coursList   = coursDAO.getTousLesCours();
+        int nbBatiments         = batDAO.getTousLesBatiments().size();
 
+        // ── Cartes statistiques ──
         HBox cartes = new HBox(20);
         cartes.getChildren().addAll(
-                createCarte("🏫", "Salles",    String.valueOf(nbSalles),    BLEU_MID),
-                createCarte("📚", "Cours",     String.valueOf(nbCours),     VERT),
-                createCarte("🏢", "Bâtiments", String.valueOf(nbBatiments), ORANGE),
-                createCarte("👥", "Étudiants", "1",                        VIOLET)
+                createCarte("🏫", "Salles",     String.valueOf(salles.size()),    BLEU_MID),
+                createCarte("📚", "Cours",      String.valueOf(coursList.size()), VERT),
+                createCarte("🏢", "Bâtiments",  String.valueOf(nbBatiments),      ORANGE),
+                createCarte("⚠️", "Conflits",   "0",                              "#C0392B")
         );
 
-        Label titreCours = new Label("📋 Derniers cours planifiés");
-        titreCours.setFont(Font.font("Arial", FontWeight.BOLD, 15));
-        titreCours.setTextFill(Color.web(BLEU_FONCE));
+        // ── Graphiques côte à côte ──
+        HBox graphiques = new HBox(20);
 
-        TableView<Cours> table = createTableCours();
-        table.setPrefHeight(250);
+        // 1. BarChart — occupation des salles
+        CategoryAxis xBar = new CategoryAxis();
+        NumberAxis yBar   = new NumberAxis(0, 10, 1);
+        xBar.setLabel("Salles");
+        yBar.setLabel("Nb cours");
 
-        panel.getChildren().addAll(titre, sousTitre, cartes, titreCours, table);
-        contentArea.getChildren().setAll(panel);
+        BarChart<String, Number> barChart = new BarChart<>(xBar, yBar);
+        barChart.setTitle("📊 Cours par salle");
+        barChart.setPrefWidth(380);
+        barChart.setPrefHeight(280);
+        barChart.setLegendVisible(false);
+        barChart.setStyle("-fx-background-color: white; -fx-background-radius: 8;");
+
+        XYChart.Series<String, Number> seriesBar = new XYChart.Series<>();
+        for (Salle s : salles) {
+            long count = coursList.stream()
+                    .filter(c -> c.getSalleId() == s.getId())
+                    .count();
+            seriesBar.getData().add(
+                    new XYChart.Data<>(s.getNumero(), count));
+        }
+        barChart.getData().add(seriesBar);
+
+        // 2. PieChart — répartition types de cours
+        PieChart pieChart = new PieChart();
+        pieChart.setTitle("🥧 Types de cours");
+        pieChart.setPrefWidth(320);
+        pieChart.setPrefHeight(280);
+        pieChart.setStyle("-fx-background-color: white; -fx-background-radius: 8;");
+
+        long nbCM     = coursList.stream().filter(c -> "CM".equals(c.getType())).count();
+        long nbTD     = coursList.stream().filter(c -> "TD".equals(c.getType())).count();
+        long nbTP     = coursList.stream().filter(c -> "TP".equals(c.getType())).count();
+        long nbExamen = coursList.stream().filter(c -> "EXAMEN".equals(c.getType())).count();
+
+        if (nbCM > 0)     pieChart.getData().add(new PieChart.Data("CM (" + nbCM + ")", nbCM));
+        if (nbTD > 0)     pieChart.getData().add(new PieChart.Data("TD (" + nbTD + ")", nbTD));
+        if (nbTP > 0)     pieChart.getData().add(new PieChart.Data("TP (" + nbTP + ")", nbTP));
+        if (nbExamen > 0) pieChart.getData().add(new PieChart.Data("Examens (" + nbExamen + ")", nbExamen));
+
+        // 3. BarChart — cours par jour
+        CategoryAxis xJour = new CategoryAxis();
+        NumberAxis yJour   = new NumberAxis(0, 5, 1);
+        xJour.setLabel("Jour");
+        yJour.setLabel("Nb cours");
+
+        BarChart<String, Number> chartJour = new BarChart<>(xJour, yJour);
+        chartJour.setTitle("📅 Cours par jour");
+        chartJour.setPrefWidth(320);
+        chartJour.setPrefHeight(280);
+        chartJour.setLegendVisible(false);
+        chartJour.setStyle("-fx-background-color: white; -fx-background-radius: 8;");
+
+        XYChart.Series<String, Number> seriesJour = new XYChart.Series<>();
+        String[] jours = {"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"};
+        String[] joursLabel = {"Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
+
+        for (int i = 0; i < jours.length; i++) {
+            final String j = jours[i];
+            long count = coursList.stream()
+                    .filter(c -> c.getCreneau() != null &&
+                            c.getCreneau().getJour().name().equals(j))
+                    .count();
+            seriesJour.getData().add(new XYChart.Data<>(joursLabel[i], count));
+        }
+        chartJour.getData().add(seriesJour);
+
+        graphiques.getChildren().addAll(barChart, pieChart, chartJour);
+
+        panel.getChildren().addAll(titre, sousTitre, cartes, graphiques);
+
+        ScrollPane scroll = new ScrollPane(panel);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: " + GRIS_CLAIR + ";");
+        contentArea.getChildren().setAll(scroll);
     }
 
     private VBox createCarte(String icone, String label, String valeur, String couleur) {
@@ -384,10 +460,33 @@ public class MainView extends Application {
         titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
         titre.setTextFill(Color.web(BLEU_FONCE));
 
-        TableView<Cours> table = createTableCours();
-        table.setPrefHeight(500);
+        // Barre d'actions
+        HBox actions = new HBox(10);
+        Button btnAjouter   = createBouton("+ Ajouter", BLEU_MID);
+        Button btnSupprimer = createBouton("🗑 Supprimer", "#C0392B");
+        actions.getChildren().addAll(btnAjouter, btnSupprimer);
 
-        panel.getChildren().addAll(titre, table);
+        TableView<Cours> table = createTableCours();
+        table.setPrefHeight(450);
+
+        CoursDAO dao = new CoursDAO();
+        ObservableList<Cours> data = FXCollections.observableArrayList(
+                dao.getTousLesCours());
+        table.setItems(data);
+
+        btnAjouter.setOnAction(e -> showFormulaireAjoutCours(data));
+        btnSupprimer.setOnAction(e -> {
+            Cours selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("⚠️ Sélectionne un cours à supprimer !");
+                return;
+            }
+            if (dao.supprimer(selected.getId())) {
+                data.setAll(dao.getTousLesCours());
+            }
+        });
+
+        panel.getChildren().addAll(titre, actions, table);
         contentArea.getChildren().setAll(panel);
     }
 
@@ -501,8 +600,253 @@ public class MainView extends Application {
         alert.setContentText(message);
         alert.showAndWait();
     }
+    private void showFormulaireAjoutCours(ObservableList<Cours> data) {
+        Stage popup = new Stage();
+        popup.setTitle("Ajouter un cours");
 
-    public static void main(String[] args) {
-        launch(args);
+        VBox form = new VBox(12);
+        form.setPadding(new Insets(25));
+        form.setPrefWidth(350);
+        form.setStyle("-fx-background-color: white;");
+
+        Label titre = new Label("📚 Nouveau Cours");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        TextField tfMatiere  = createField("Matière (ex: POO Java)");
+        TextField tfGroupe   = createField("Groupe (ex: G1)");
+
+        ComboBox<String> cbType = new ComboBox<>();
+        cbType.getItems().addAll("CM", "TD", "TP", "EXAMEN");
+        cbType.setPromptText("Type de cours");
+        cbType.setPrefWidth(Double.MAX_VALUE);
+
+        TextField tfEnseignant = createField("ID Enseignant (ex: 3)");
+        TextField tfSalle      = createField("ID Salle (ex: 1)");
+
+        ComboBox<String> cbJour = new ComboBox<>();
+        cbJour.getItems().addAll("LUNDI", "MARDI", "MERCREDI",
+                "JEUDI", "VENDREDI", "SAMEDI");
+        cbJour.setPromptText("Jour");
+        cbJour.setPrefWidth(Double.MAX_VALUE);
+
+        TextField tfHeureDebut = createField("Heure début (ex: 08:00:00)");
+        TextField tfHeureFin   = createField("Heure fin (ex: 10:00:00)");
+
+        Label lblMsg = new Label("");
+        lblMsg.setTextFill(Color.RED);
+
+        Button btnSave = createBouton("💾 Enregistrer", BLEU_MID);
+        btnSave.setPrefWidth(Double.MAX_VALUE);
+
+        btnSave.setOnAction(e -> {
+            if (tfMatiere.getText().isEmpty() || tfGroupe.getText().isEmpty()
+                    || cbType.getValue() == null || tfEnseignant.getText().isEmpty()
+                    || tfSalle.getText().isEmpty() || cbJour.getValue() == null
+                    || tfHeureDebut.getText().isEmpty() || tfHeureFin.getText().isEmpty()) {
+                lblMsg.setText("⚠️ Remplis tous les champs !");
+                return;
+            }
+            try {
+                // Créer le créneau
+                String sqlCreneau = "INSERT INTO creneau (jour, heure_debut, heure_fin) " +
+                        "VALUES (?, ?, ?)";
+                java.sql.Connection conn = database.DatabaseConnection.getConnection();
+                java.sql.PreparedStatement ps = conn.prepareStatement(
+                        sqlCreneau, java.sql.Statement.RETURN_GENERATED_KEYS);
+                ps.setString(1, cbJour.getValue());
+                ps.setString(2, tfHeureDebut.getText());
+                ps.setString(3, tfHeureFin.getText());
+                ps.executeUpdate();
+
+                // Récupérer l'ID du créneau créé
+                java.sql.ResultSet rs = ps.getGeneratedKeys();
+                int creneauId = 0;
+                if (rs.next()) creneauId = rs.getInt(1);
+
+                // Vérifier conflit
+                dao.ConflitDAO conflitDAO = new dao.ConflitDAO();
+                if (conflitDAO.salleDejaOccupee(
+                        Integer.parseInt(tfSalle.getText()), creneauId)) {
+                    lblMsg.setText("❌ CONFLIT : salle déjà occupée !");
+                    return;
+                }
+                if (conflitDAO.enseignantDejaOccupe(
+                        Integer.parseInt(tfEnseignant.getText()), creneauId)) {
+                    lblMsg.setText("❌ CONFLIT : enseignant déjà occupé !");
+                    return;
+                }
+
+                // Créer le cours
+                Cours c = new Cours();
+                c.setMatiere(tfMatiere.getText());
+                c.setGroupe(tfGroupe.getText());
+                c.setType(cbType.getValue());
+                c.setEnseignantId(Integer.parseInt(tfEnseignant.getText()));
+                c.setSalleId(Integer.parseInt(tfSalle.getText()));
+                c.setCreneauId(creneauId);
+                c.setEmploiDuTempsId(1);
+
+                CoursDAO coursDAO = new CoursDAO();
+                if (coursDAO.ajouter(c)) {
+                    data.setAll(coursDAO.getTousLesCours());
+                    popup.close();
+                } else {
+                    lblMsg.setText("❌ Erreur lors de l'ajout !");
+                }
+            } catch (NumberFormatException ex) {
+                lblMsg.setText("⚠️ Les IDs doivent être des nombres !");
+            } catch (java.sql.SQLException ex) {
+                lblMsg.setText("❌ Erreur SQL : " + ex.getMessage());
+            }
+        });
+
+        form.getChildren().addAll(
+                titre,
+                new Label("Matière :"),    tfMatiere,
+                new Label("Groupe :"),     tfGroupe,
+                new Label("Type :"),       cbType,
+                new Label("ID Enseignant :"), tfEnseignant,
+                new Label("ID Salle :"),   tfSalle,
+                new Label("Jour :"),       cbJour,
+                new Label("Heure début :"), tfHeureDebut,
+                new Label("Heure fin :"),  tfHeureFin,
+                lblMsg, btnSave
+        );
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(true);
+        popup.setScene(new Scene(scroll, 370, 550));
+        popup.show();
     }
+    private void showConflits() {
+        VBox panel = new VBox(15);
+        panel.setPadding(new Insets(5));
+
+        Label titre = new Label("⚠️ Gestion des Conflits");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        Label sousTitre = new Label("Conflits détectés automatiquement lors de la planification");
+        sousTitre.setFont(Font.font("Arial", 13));
+        sousTitre.setTextFill(Color.GRAY);
+
+        // ── Détection en temps réel ──
+        CoursDAO coursDAO = new CoursDAO();
+        ConflitDAO conflitDAO = new ConflitDAO();
+        List<Cours> coursList = coursDAO.getTousLesCours();
+
+        VBox listeConflits = new VBox(10);
+
+        boolean conflitTrouve = false;
+
+        for (int i = 0; i < coursList.size(); i++) {
+            for (int j = i + 1; j < coursList.size(); j++) {
+                Cours c1 = coursList.get(i);
+                Cours c2 = coursList.get(j);
+
+                // Même créneau + même salle
+                if (c1.getCreneauId() == c2.getCreneauId()
+                        && c1.getSalleId() == c2.getSalleId()) {
+
+                    HBox conflitBox = createConflitBox(
+                            "🏫 SALLE OCCUPÉE",
+                            "Salle " + c1.getNumeroSalle(),
+                            c1.getMatiere() + " (" + c1.getGroupe() + ")",
+                            c2.getMatiere() + " (" + c2.getGroupe() + ")",
+                            "#E74C3C"
+                    );
+                    listeConflits.getChildren().add(conflitBox);
+                    conflitTrouve = true;
+                }
+
+                // Même créneau + même enseignant
+                if (c1.getCreneauId() == c2.getCreneauId()
+                        && c1.getEnseignantId() == c2.getEnseignantId()) {
+
+                    HBox conflitBox = createConflitBox(
+                            "👨‍🏫 ENSEIGNANT INDISPONIBLE",
+                            c1.getNomEnseignant(),
+                            c1.getMatiere() + " (" + c1.getGroupe() + ")",
+                            c2.getMatiere() + " (" + c2.getGroupe() + ")",
+                            "#E67E22"
+                    );
+                    listeConflits.getChildren().add(conflitBox);
+                    conflitTrouve = true;
+                }
+            }
+        }
+
+        if (!conflitTrouve) {
+            VBox ok = new VBox(10);
+            ok.setAlignment(Pos.CENTER);
+            ok.setPadding(new Insets(60));
+            ok.setStyle(
+                    "-fx-background-color: white;" +
+                            "-fx-background-radius: 8;"
+            );
+            Label lblOk = new Label("✅ Aucun conflit détecté !");
+            lblOk.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+            lblOk.setTextFill(Color.web(VERT));
+            Label lblSous = new Label("Tous les cours sont correctement planifiés.");
+            lblSous.setTextFill(Color.GRAY);
+            ok.getChildren().addAll(lblOk, lblSous);
+            listeConflits.getChildren().add(ok);
+        }
+
+        ScrollPane scroll = new ScrollPane(listeConflits);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: transparent;");
+        scroll.setPrefHeight(500);
+
+        panel.getChildren().addAll(titre, sousTitre, scroll);
+        contentArea.getChildren().setAll(panel);
+    }
+
+    private HBox createConflitBox(String typeConflit, String ressource,
+                                  String cours1, String cours2, String couleur) {
+        HBox box = new HBox(15);
+        box.setPadding(new Insets(15));
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-border-color: " + couleur + ";" +
+                        "-fx-border-width: 0 0 0 5;" +
+                        "-fx-border-radius: 8;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+        );
+
+        // Icône
+        Label icone = new Label("⚠️");
+        icone.setFont(Font.font("Arial", 28));
+
+        // Détails
+        VBox details = new VBox(5);
+        HBox.setHgrow(details, Priority.ALWAYS);
+
+        Label lblType = new Label(typeConflit);
+        lblType.setFont(Font.font("Arial", FontWeight.BOLD, 13));
+        lblType.setTextFill(Color.web(couleur));
+
+        Label lblRessource = new Label("Ressource : " + ressource);
+        lblRessource.setFont(Font.font("Arial", 12));
+        lblRessource.setTextFill(Color.web(BLEU_FONCE));
+
+        Label lblCours1 = new Label("• " + cours1);
+        lblCours1.setFont(Font.font("Arial", 12));
+        lblCours1.setTextFill(Color.DARKGRAY);
+
+        Label lblCours2 = new Label("• " + cours2);
+        lblCours2.setFont(Font.font("Arial", 12));
+        lblCours2.setTextFill(Color.DARKGRAY);
+
+        details.getChildren().addAll(lblType, lblRessource, lblCours1, lblCours2);
+
+        box.getChildren().addAll(icone, details);
+        return box;
+    }
+        public static void main(String[] args) {
+            Application.launch(MainView.class, args);
+        }
 }
