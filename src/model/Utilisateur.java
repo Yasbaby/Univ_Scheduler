@@ -6,7 +6,8 @@ public class Utilisateur {
     private String prenom;
     private String email;
     private String motDePasse;
-    private String role;
+    private Role role;
+    private boolean actif;
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -23,11 +24,24 @@ public class Utilisateur {
     public String getMotDePasse() { return motDePasse; }
     public void setMotDePasse(String motDePasse) { this.motDePasse = motDePasse; }
 
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
+
+    public boolean isActif() { return actif; }
+    public void setActif(boolean actif) { this.actif = actif; }
+
+    // Méthode clé du RBAC
+    public boolean aLaPermission(String permission) {
+        if (role == null) return false;
+        return role.aLaPermission(permission);
+    }
+
+    public String getNomComplet() {
+        return prenom + " " + nom;
+    }
 
     @Override
     public String toString() {
-        return prenom + " " + nom + " (" + role + ")";
+        return getNomComplet() + " (" + (role != null ? role.getNom() : "?") + ")";
     }
 }

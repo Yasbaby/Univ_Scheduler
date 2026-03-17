@@ -2,6 +2,7 @@ package view;
 
 import dao.UtilisateurDAO;
 import model.Utilisateur;
+import service.SessionManager;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -51,7 +52,20 @@ public class LoginView extends Application {
         info.setTextFill(Color.web("#7FB3D3"));
         info.setAlignment(Pos.CENTER);
 
-        panneauGauche.getChildren().addAll(icone, titre, sous, sep, info);
+        // Comptes de test
+        Label lblComptes = new Label(
+                "Comptes de test :\n" +
+                        "admin@univ.sn / admin123\n" +
+                        "gestionnaire@univ.sn / gestionnaire123\n" +
+                        "diallo@univ.sn / enseignant123\n" +
+                        "ba@univ.sn / etudiant123"
+        );
+        lblComptes.setFont(Font.font("Arial", 10));
+        lblComptes.setTextFill(Color.web("#7FB3D3"));
+        lblComptes.setAlignment(Pos.CENTER);
+
+        panneauGauche.getChildren().addAll(
+                icone, titre, sous, sep, info, lblComptes);
 
         // ── Panneau droit (formulaire) ──
         VBox panneauDroit = new VBox(15);
@@ -143,21 +157,37 @@ public class LoginView extends Application {
                                 "-fx-border-color: red; -fx-border-radius: 6;"
                 );
             } else {
-                // Connexion réussie → ouvre l'interface principale
+                // ✅ Sauvegarde la session RBAC
+                SessionManager.getInstance().connecter(u);
+
+                // Ferme le login
                 stage.close();
+
+                // Redirige selon le rôle
                 Stage mainStage = new Stage();
                 try {
-                    new MainView().start(mainStage);
+                    String role = SessionManager.getInstance().getRole();
+                    switch (role) {
+                        case "ADMINISTRATEUR":
+                        case "GESTIONNAIRE":
+                            new MainView().start(mainStage);
+                            break;
+                        case "ENSEIGNANT":
+                            // Amina va créer EnseignantView
+                            new MainView().start(mainStage);
+                            break;
+                        case "ETUDIANT":
+                            // Amina va créer EtudiantView
+                            new MainView().start(mainStage);
+                            break;
+                        default:
+                            new MainView().start(mainStage);
+                    }
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
             }
         });
-
-        // Compte de test
-        Label lblTest = new Label("Compte test : admin@univ.sn / hashed_pwd_1");
-        lblTest.setFont(Font.font("Arial", 11));
-        lblTest.setTextFill(Color.GRAY);
 
         panneauDroit.getChildren().addAll(
                 titreCo, sousCo,
@@ -165,8 +195,7 @@ public class LoginView extends Application {
                 lblEmail, tfEmail,
                 lblMdp, pfMdp,
                 lblErreur,
-                btnConnexion,
-                lblTest
+                btnConnexion
         );
 
         root.setLeft(panneauGauche);
