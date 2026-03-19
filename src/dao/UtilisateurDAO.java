@@ -59,6 +59,7 @@ public class UtilisateurDAO {
                 Role r = new Role();
                 r.setNom(rs.getString("role_nom"));
                 u.setRole(r);
+                u.setActif(rs.getBoolean("actif"));
                 liste.add(u);
             }
         } catch (SQLException e) {

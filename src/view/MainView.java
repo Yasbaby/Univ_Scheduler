@@ -116,7 +116,9 @@ public class MainView extends Application {
         Button btnEmploi    = createMenuButton("🗓️  Emploi du temps");
         Button btnConflits  = createMenuButton("⚠️  Conflits");
         Button btnRecherche = createMenuButton("🔍  Rechercher salle");
+        Button btnUsers = createMenuButton("👥  Utilisateurs");
 
+        btnUsers.setOnAction(e -> { setActif(btnUsers); showUtilisateurs(); });
         btnDash.setOnAction(e -> { setActif(btnDash); showDashboard(); });
         btnSalles.setOnAction(e -> { setActif(btnSalles); showSalles(); });
         btnCours.setOnAction(e -> { setActif(btnCours); showCours(); });
@@ -149,6 +151,7 @@ public class MainView extends Application {
                 btnBatiments.setVisible(true); btnBatiments.setManaged(true);
                 btnCours.setVisible(true);     btnCours.setManaged(true);
                 btnConflits.setVisible(true);  btnConflits.setManaged(true);
+                btnUsers.setVisible(true);     btnUsers.setManaged(true);  // ← ajoute cette ligne
                 break;
             case "GESTIONNAIRE":
                 btnCours.setVisible(true);     btnCours.setManaged(true);
@@ -199,7 +202,7 @@ public class MainView extends Application {
         setActif(btnDash);
         menu.getChildren().addAll(menuTitre, btnDash, btnSalles,
                 btnCours, btnBatiments, btnEmploi, btnConflits,
-                btnRecherche, sep, infoTitre, info, btnDeconnexion);
+                btnRecherche, btnUsers, sep, infoTitre, info, btnDeconnexion);
         return menu;
     }
 
@@ -1045,6 +1048,217 @@ public class MainView extends Application {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+    private void showUtilisateurs() {
+        VBox panel = new VBox(15);
+        panel.setPadding(new Insets(5));
+
+        Label titre = new Label("👥 Gestion des Utilisateurs");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        // Barre d'actions
+        HBox actions = new HBox(10);
+        Button btnAjouter    = createBouton("+ Ajouter", BLEU_MID);
+        Button btnSupprimer  = createBouton("🗑 Supprimer", "#C0392B");
+        Button btnDesactiver = createBouton("🔒 Désactiver", ORANGE);
+        Button btnActiver    = createBouton("✅ Activer", VERT);
+        actions.getChildren().addAll(btnAjouter, btnSupprimer, btnDesactiver, btnActiver);
+
+        // Tableau
+        TableView<model.Utilisateur> table = new TableView<>();
+        table.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+        );
+        table.setPrefHeight(450);
+
+        TableColumn<model.Utilisateur, Integer> colId = new TableColumn<>("ID");
+        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
+        colId.setPrefWidth(50);
+
+        TableColumn<model.Utilisateur, String> colNom = new TableColumn<>("Nom");
+        colNom.setCellValueFactory(new PropertyValueFactory<>("nom"));
+        colNom.setPrefWidth(120);
+
+        TableColumn<model.Utilisateur, String> colPrenom = new TableColumn<>("Prénom");
+        colPrenom.setCellValueFactory(new PropertyValueFactory<>("prenom"));
+        colPrenom.setPrefWidth(120);
+
+        TableColumn<model.Utilisateur, String> colEmail = new TableColumn<>("Email");
+        colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
+        colEmail.setPrefWidth(200);
+
+        TableColumn<model.Utilisateur, String> colRole = new TableColumn<>("Rôle");
+        colRole.setCellValueFactory(data ->
+                new javafx.beans.property.SimpleStringProperty(
+                        data.getValue().getRole() != null ? data.getValue().getRole().getNom() : ""
+                )
+        );
+        colRole.setPrefWidth(130);
+
+        // Colonne statut avec voyant sobre
+        TableColumn<model.Utilisateur, String> colStatut = new TableColumn<>("Statut");
+        colStatut.setCellValueFactory(data ->
+                new javafx.beans.property.SimpleStringProperty(
+                        data.getValue().isActif() ? "Actif" : "Bloqué"
+                )
+        );
+        colStatut.setCellFactory(col -> new TableCell<model.Utilisateur, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else if (item.equals("Actif")) {
+                    setText("● Actif");
+                    setStyle("-fx-text-fill: #1E8449; -fx-font-weight: bold;");
+                } else {
+                    setText("● Bloqué");
+                    setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
+                }
+            }
+        });
+        colStatut.setPrefWidth(100);
+
+        table.getColumns().addAll(colId, colNom, colPrenom, colEmail, colRole, colStatut);
+
+        dao.UtilisateurDAO dao = new dao.UtilisateurDAO();
+        ObservableList<model.Utilisateur> data =
+                FXCollections.observableArrayList(dao.getTousLesUtilisateurs());
+        table.setItems(data);
+
+        // Actions
+        btnAjouter.setOnAction(e -> showFormulaireAjoutUtilisateur(data));
+
+        btnSupprimer.setOnAction(e -> {
+            model.Utilisateur selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("⚠️ Sélectionne un utilisateur !");
+                return;
+            }
+            if (selected.getId() == SessionManager.getInstance().getUtilisateur().getId()) {
+                showAlert("⚠️ Tu ne peux pas supprimer ton propre compte !");
+                return;
+            }
+            if (dao.supprimer(selected.getId())) {
+                data.setAll(dao.getTousLesUtilisateurs());
+            }
+        });
+
+        btnDesactiver.setOnAction(e -> {
+            model.Utilisateur selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("⚠️ Sélectionne un utilisateur !");
+                return;
+            }
+            if (selected.getId() == SessionManager.getInstance().getUtilisateur().getId()) {
+                showAlert("⚠️ Tu ne peux pas bloquer ton propre compte !");
+                return;
+            }
+            if (dao.toggleActif(selected.getId(), false)) {
+                data.setAll(dao.getTousLesUtilisateurs());
+            }
+        });
+
+        btnActiver.setOnAction(e -> {
+            model.Utilisateur selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("⚠️ Sélectionne un utilisateur !");
+                return;
+            }
+            if (dao.toggleActif(selected.getId(), true)) {
+                data.setAll(dao.getTousLesUtilisateurs());
+            }
+        });
+
+        panel.getChildren().addAll(titre, actions, table);
+        contentArea.getChildren().setAll(panel);
+    }
+
+    private void showFormulaireAjoutUtilisateur(
+            ObservableList<model.Utilisateur> data) {
+        Stage popup = new Stage();
+        popup.setTitle("Ajouter un utilisateur");
+
+        VBox form = new VBox(12);
+        form.setPadding(new Insets(25));
+        form.setPrefWidth(350);
+        form.setStyle("-fx-background-color: white;");
+
+        Label titre = new Label("👤 Nouvel Utilisateur");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        TextField tfNom    = createField("Nom");
+        TextField tfPrenom = createField("Prénom");
+        TextField tfEmail  = createField("Email");
+        TextField tfMdp    = createField("Mot de passe");
+
+        ComboBox<String> cbRole = new ComboBox<>();
+        cbRole.getItems().addAll("ADMINISTRATEUR", "GESTIONNAIRE", "ENSEIGNANT", "ETUDIANT");
+        cbRole.setPromptText("Choisir un rôle");
+        cbRole.setPrefWidth(Double.MAX_VALUE);
+
+        Label lblMsg = new Label("");
+        lblMsg.setTextFill(Color.RED);
+
+        Button btnSave = createBouton("💾 Enregistrer", BLEU_MID);
+        btnSave.setPrefWidth(Double.MAX_VALUE);
+
+        btnSave.setOnAction(e -> {
+            if (tfNom.getText().isEmpty() || tfPrenom.getText().isEmpty()
+                    || tfEmail.getText().isEmpty() || tfMdp.getText().isEmpty()
+                    || cbRole.getValue() == null) {
+                lblMsg.setText("⚠️ Remplis tous les champs !");
+                return;
+            }
+
+            // Trouver l'ID du rôle
+            dao.RoleDAO roleDAO = new dao.RoleDAO();
+            model.Role role = null;
+            for (model.Role r : roleDAO.getTousLesRoles()) {
+                if (r.getNom().equals(cbRole.getValue())) {
+                    role = r;
+                    break;
+                }
+            }
+
+            if (role == null) {
+                lblMsg.setText("❌ Rôle introuvable !");
+                return;
+            }
+
+            model.Utilisateur u = new model.Utilisateur();
+            u.setNom(tfNom.getText());
+            u.setPrenom(tfPrenom.getText());
+            u.setEmail(tfEmail.getText());
+            u.setMotDePasse(tfMdp.getText());
+            u.setRole(role);
+
+            dao.UtilisateurDAO utilisateurDAO = new dao.UtilisateurDAO();
+            if (utilisateurDAO.ajouter(u)) {
+                data.setAll(utilisateurDAO.getTousLesUtilisateurs());
+                popup.close();
+            } else {
+                lblMsg.setText("❌ Erreur lors de l'ajout !");
+            }
+        });
+
+        form.getChildren().addAll(
+                titre,
+                new Label("Nom :"),       tfNom,
+                new Label("Prénom :"),    tfPrenom,
+                new Label("Email :"),     tfEmail,
+                new Label("Mot de passe :"), tfMdp,
+                new Label("Rôle :"),      cbRole,
+                lblMsg, btnSave
+        );
+
+        popup.setScene(new Scene(form));
+        popup.show();
     }
 
     public static void main(String[] args) {
