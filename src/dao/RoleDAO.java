@@ -12,7 +12,7 @@ public class RoleDAO {
     public Role getRoleAvecPermissions(int roleId) {
         Role role = new Role();
         String sql = "SELECT r.id, r.nom, r.description, p.nom AS permission " +
-                "FROM role r " +
+                "FROM `role` r " +
                 "JOIN role_permission rp ON r.id = rp.role_id " +
                 "JOIN permission p ON rp.permission_id = p.id " +
                 "WHERE r.id = ?";
@@ -39,7 +39,7 @@ public class RoleDAO {
     // Récupère tous les rôles
     public List<Role> getTousLesRoles() {
         List<Role> roles = new ArrayList<>();
-        String sql = "SELECT * FROM role";
+        String sql = "SELECT * FROM `role`";
         try {
             Connection conn = DatabaseConnection.getConnection();
             Statement stmt = conn.createStatement();

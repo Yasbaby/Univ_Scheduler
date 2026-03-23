@@ -13,7 +13,7 @@ public class UtilisateurDAO {
     public Utilisateur seConnecter(String email, String motDePasse) {
         String sql = "SELECT u.*, r.nom AS role_nom " +
                 "FROM utilisateur u " +
-                "JOIN role r ON u.role_id = r.id " +
+                "JOIN `role` r ON u.role_id = r.id " +
                 "WHERE u.email = ? AND u.mot_de_passe = ? AND u.actif = TRUE";
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -45,7 +45,7 @@ public class UtilisateurDAO {
     public List<Utilisateur> getTousLesUtilisateurs() {
         List<Utilisateur> liste = new ArrayList<>();
         String sql = "SELECT u.*, r.nom AS role_nom " +
-                "FROM utilisateur u JOIN role r ON u.role_id = r.id";
+                "FROM utilisateur u JOIN `role` r ON u.role_id = r.id";
         try {
             Connection conn = DatabaseConnection.getConnection();
             Statement stmt = conn.createStatement();
