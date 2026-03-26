@@ -29,10 +29,21 @@ public class UtilisateurDAO {
                 u.setPrenom(rs.getString("prenom"));
                 u.setEmail(rs.getString("email"));
 
-                // Charger le rôle avec ses permissions
                 RoleDAO roleDAO = new RoleDAO();
                 Role role = roleDAO.getRoleAvecPermissions(rs.getInt("role_id"));
                 u.setRole(role);
+
+                // Charge classe si c'est un étudiant
+                if ("ETUDIANT".equals(rs.getString("role_nom"))) {
+                    String sqlEtu = "SELECT classe, numero_etudiant FROM etudiant WHERE id = ?";
+                    PreparedStatement psEtu = conn.prepareStatement(sqlEtu);
+                    psEtu.setInt(1, u.getId());
+                    ResultSet rsEtu = psEtu.executeQuery();
+                    if (rsEtu.next()) {
+                        u.setClasse(rsEtu.getString("classe"));
+                        u.setNumeroEtudiant(rsEtu.getString("numero_etudiant"));
+                    }
+                }
                 return u;
             }
         } catch (SQLException e) {

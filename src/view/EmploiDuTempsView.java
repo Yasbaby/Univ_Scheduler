@@ -180,7 +180,7 @@ public class EmploiDuTempsView {
     }
 
     private int getLigne(String heureDebut) {
-        if (heureDebut.startsWith("08")) return 1;
+        if (heureDebut.startsWith("8") || heureDebut.startsWith("08")) return 1;
         if (heureDebut.startsWith("10")) return 2;
         if (heureDebut.startsWith("12")) return 3;
         if (heureDebut.startsWith("14")) return 4;

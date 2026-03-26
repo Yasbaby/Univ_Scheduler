@@ -6,8 +6,26 @@ public class Utilisateur {
     private String prenom;
     private String email;
     private String motDePasse;
+    private String classe;
+    private String numeroEtudiant;
     private Role role;
     private boolean actif;
+
+    public String getClasse() {
+        return classe;
+    }
+
+    public void setClasse(String classe) {
+        this.classe = classe;
+    }
+
+    public String getNumeroEtudiant() {
+        return numeroEtudiant;
+    }
+
+    public void setNumeroEtudiant(String n) {
+        this.numeroEtudiant = n;
+    }
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }

@@ -56,6 +56,13 @@ public class MainView extends Application {
             case "GESTIONNAIRE":
                 showCours();
                 break;
+            case "ENSEIGNANT":
+                showEmploiDuTempsEnseignant();
+                break;
+            case "ETUDIANT":
+                showEmploiDuTempsEtudiant();
+
+                break;
             default:
                 contentArea.getChildren().setAll(new EmploiDuTempsView().getView());
                 break;
@@ -132,19 +139,22 @@ public class MainView extends Application {
         btnSalles.setOnAction(e -> { setActif(btnSalles); showSalles(); });
         btnCours.setOnAction(e -> { setActif(btnCours); showCours(); });
         btnBatiments.setOnAction(e -> { setActif(btnBatiments); showBatiments(); });
-        btnEmploi.setOnAction(e -> {
-            setActif(btnEmploi);
-            contentArea.getChildren().setAll(new EmploiDuTempsView().getView());
-        });
+
         btnConflits.setOnAction(e -> { setActif(btnConflits); showConflits(); });
         btnRecherche.setOnAction(e -> { setActif(btnRecherche); showRechercherSalle(); });
         btnEmploi.setOnAction(e -> {
             setActif(btnEmploi);
             String roleActuel = SessionManager.getInstance().getRole();
-            if (roleActuel.equals("ENSEIGNANT")) {
-                showEmploiDuTempsEnseignant();
-            } else {
-                contentArea.getChildren().setAll(new EmploiDuTempsView().getView());
+            switch (roleActuel) {
+                case "ENSEIGNANT":
+                    showEmploiDuTempsEnseignant();
+                    break;
+                case "ETUDIANT":
+                    showEmploiDuTempsEtudiant();
+                    break;
+                default:
+                    contentArea.getChildren().setAll(new EmploiDuTempsView().getView());
+                    break;
             }
         });
 
@@ -364,6 +374,18 @@ public class MainView extends Application {
             seriesJour.getData().add(new XYChart.Data<>(joursLabel[i], count));
         }
         chartJour.getData().add(seriesJour);
+        int nbConflits = 0;
+        for (int i = 0; i < coursList.size(); i++) {
+            for (int j = i + 1; j < coursList.size(); j++) {
+                Cours c1 = coursList.get(i);
+                Cours c2 = coursList.get(j);
+                if (c1.getCreneauId() == c2.getCreneauId() &&
+                        (c1.getSalleId() == c2.getSalleId() ||
+                                c1.getEnseignantId() == c2.getEnseignantId())) {
+                    nbConflits++;
+                }
+            }
+        }
 
         graphiques.getChildren().addAll(barChart, pieChart, chartJour);
 
@@ -786,7 +808,9 @@ public class MainView extends Application {
                 Cours c1 = coursList.get(i);
                 Cours c2 = coursList.get(j);
 
-                if (c1.getCreneauId() == c2.getCreneauId()
+                if (c1.getCreneau() != null && c2.getCreneau() != null
+                        && c1.getCreneau().getJour() == c2.getCreneau().getJour()
+                        && c1.getCreneau().getHeureDebut().equals(c2.getCreneau().getHeureDebut())
                         && c1.getSalleId() == c2.getSalleId()
                         && c1.getId() != c2.getId()) {
                     listeConflits.getChildren().add(createConflitBox(
@@ -798,8 +822,9 @@ public class MainView extends Application {
                     ));
                     conflitTrouve = true;
                 }
-
-                if (c1.getCreneauId() == c2.getCreneauId()
+                if (c1.getCreneau() != null && c2.getCreneau() != null
+                        && c1.getCreneau().getJour() == c2.getCreneau().getJour()
+                        && c1.getCreneau().getHeureDebut().equals(c2.getCreneau().getHeureDebut())
                         && c1.getEnseignantId() == c2.getEnseignantId()
                         && c1.getId() != c2.getId()) {
                     listeConflits.getChildren().add(createConflitBox(
@@ -1042,6 +1067,7 @@ public class MainView extends Application {
         panel.getChildren().addAll(titre, sousTitre, formulaire, titreResultats, scroll);
         contentArea.getChildren().setAll(panel);
     }
+
 
     // ── Helpers ──
     private Button createBouton(String text, String couleur) {
@@ -1459,101 +1485,62 @@ public class MainView extends Application {
         VBox panel = new VBox(15);
         panel.setPadding(new Insets(5));
 
+        // ── En-tête ──
+        SessionManager session = SessionManager.getInstance();
+        String nomEnseignant = session.getUtilisateur().getNomComplet();
+        int enseignantId     = session.getUtilisateur().getId();
+
         Label titre = new Label("🗓️ Mon Emploi du Temps");
         titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
         titre.setTextFill(Color.web(BLEU_FONCE));
 
-        // Récupère l'enseignant connecté
-        int enseignantId = SessionManager.getInstance().getUtilisateur().getId();
+        Label sousTitre = new Label("Cours de " + nomEnseignant);
+        sousTitre.setFont(Font.font("Arial", 13));
+        sousTitre.setTextFill(Color.GRAY);
 
-        // Grille de l'emploi du temps
-        CoursDAO coursDAO = new CoursDAO();
-        List<Cours> tousLesCours = coursDAO.getTousLesCours();
+        // ── Récupère uniquement les cours de cet enseignant ──
+        CoursDAO dao = new CoursDAO();
+        List<Cours> tousLesCours = dao.getTousLesCours();
+        List<Cours> mesCours = tousLesCours.stream()
+                .filter(c -> c.getEnseignantId() == enseignantId)
+                .collect(java.util.stream.Collectors.toList());
 
-        // Filtre les cours de cet enseignant
-        List<Cours> mesCours = new java.util.ArrayList<>();
-        for (Cours c : tousLesCours) {
-            if (c.getEnseignantId() == enseignantId) {
-                mesCours.add(c);
-            }
-        }
-
-        // Tableau
-        TableView<Cours> table = new TableView<>();
-        table.setStyle(
-                "-fx-background-color: white;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+        // ── Statistiques rapides ──
+        HBox stats = new HBox(15);
+        stats.getChildren().addAll(
+                createCarte("📚", "Mes cours",
+                        String.valueOf(mesCours.size()), BLEU_MID),
+                createCarte("👥", "Groupes",
+                        String.valueOf(mesCours.stream()
+                                .map(Cours::getGroupe)
+                                .distinct().count()), VERT),
+                createCarte("🏫", "Salles utilisées",
+                        String.valueOf(mesCours.stream()
+                                .map(Cours::getSalleId)
+                                .distinct().count()), ORANGE)
         );
-        table.setPrefHeight(300);
 
-        TableColumn<Cours, String> colJour = new TableColumn<>("Jour");
-        colJour.setCellValueFactory(data -> {
-            if (data.getValue().getCreneau() == null)
-                return new javafx.beans.property.SimpleStringProperty("");
-            switch (data.getValue().getCreneau().getJour().name()) {
-                case "MONDAY":    return new javafx.beans.property.SimpleStringProperty("Lundi");
-                case "TUESDAY":   return new javafx.beans.property.SimpleStringProperty("Mardi");
-                case "WEDNESDAY": return new javafx.beans.property.SimpleStringProperty("Mercredi");
-                case "THURSDAY":  return new javafx.beans.property.SimpleStringProperty("Jeudi");
-                case "FRIDAY":    return new javafx.beans.property.SimpleStringProperty("Vendredi");
-                case "SATURDAY":  return new javafx.beans.property.SimpleStringProperty("Samedi");
-                default:          return new javafx.beans.property.SimpleStringProperty("");
-            }
-        });
+        // ── Tableau de mes cours ──
+        TableView<Cours> table = createTableCours();
+        table.setItems(javafx.collections.FXCollections
+                .observableArrayList(mesCours));
+        table.setPrefHeight(350);
 
-        TableColumn<Cours, String> colHeure = new TableColumn<>("Horaire");
-        colHeure.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(
-                        data.getValue().getCreneau() != null ?
-                                data.getValue().getCreneau().getHeureDebut() + " → " +
-                                        data.getValue().getCreneau().getHeureFin() : ""
-                )
-        );
-        colHeure.setPrefWidth(130);
-
-        TableColumn<Cours, String> colMatiere = new TableColumn<>("Matière");
-        colMatiere.setCellValueFactory(new PropertyValueFactory<>("matiere"));
-        colMatiere.setPrefWidth(150);
-
-        TableColumn<Cours, String> colGroupe = new TableColumn<>("Groupe");
-        colGroupe.setCellValueFactory(new PropertyValueFactory<>("groupe"));
-        colGroupe.setPrefWidth(80);
-
-        TableColumn<Cours, String> colType = new TableColumn<>("Type");
-        colType.setCellValueFactory(new PropertyValueFactory<>("type"));
-        colType.setPrefWidth(80);
-
-        TableColumn<Cours, String> colSalle = new TableColumn<>("Salle");
-        colSalle.setCellValueFactory(new PropertyValueFactory<>("numeroSalle"));
-        colSalle.setPrefWidth(80);
-
-        table.getColumns().addAll(colJour, colHeure, colMatiere, colGroupe, colType, colSalle);
-        table.setItems(FXCollections.observableArrayList(mesCours));
-
-        // Message si aucun cours
-        if (mesCours.isEmpty()) {
-            Label lblVide = new Label("Aucun cours assigné pour le moment.");
-            lblVide.setTextFill(Color.GRAY);
-            panel.getChildren().addAll(titre, lblVide);
-        } else {
-            panel.getChildren().addAll(titre, table);
-        }
-
-        // ── Boutons actions ──
-        Label titreActions = new Label("⚡ Actions rapides");
+        // ── Actions ──
+        Label titreActions = new Label("⚡ Actions");
         titreActions.setFont(Font.font("Arial", FontWeight.BOLD, 15));
         titreActions.setTextFill(Color.web(BLEU_FONCE));
 
         HBox actions = new HBox(15);
-        Button btnReserver  = createBouton("📅 Réserver une salle", BLEU_MID);
-        Button btnSignaler  = createBouton("⚠️ Signaler un problème", ORANGE);
+        Button btnReserver = createBouton("📅 Réserver une salle", BLEU_MID);
+        Button btnSignaler = createBouton("⚠️ Signaler un problème", ORANGE);
         actions.getChildren().addAll(btnReserver, btnSignaler);
 
         btnReserver.setOnAction(e -> showFormulaireReservation());
         btnSignaler.setOnAction(e -> showFormulaireSignalement());
 
-        panel.getChildren().addAll(titreActions, actions);
+        panel.getChildren().addAll(
+                titre, sousTitre, stats, table, titreActions, actions);
         contentArea.getChildren().setAll(panel);
     }
 
@@ -1712,6 +1699,222 @@ public class MainView extends Application {
 
         popup.setScene(new Scene(form));
         popup.show();
+    }
+    private void showEmploiDuTempsEtudiant() {
+        VBox panel = new VBox(15);
+        panel.setPadding(new Insets(5));
+
+        SessionManager session = SessionManager.getInstance();
+        String classe = session.getUtilisateur().getClasse();
+        if (classe == null || classe.isEmpty()) classe = "Toutes";
+
+
+
+        // ── En-tête ──
+        Label titre = new Label("🗓️ Emploi du Temps — " + classe);
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        Label sousTitre = new Label("Cours de ta classe · Semaine en cours");
+        sousTitre.setFont(Font.font("Arial", 13));
+        sousTitre.setTextFill(Color.GRAY);
+
+        // ── Filtre par groupe/classe ──
+        CoursDAO dao = new CoursDAO();
+        List<Cours> tousLesCours = dao.getTousLesCours();
+        final String classeFinale = classe;
+
+        // Affiche tous les cours par défaut
+        List<Cours> mesCours = new java.util.ArrayList<>(tousLesCours);
+        // ── Statistiques ──
+        HBox stats = new HBox(15);
+        long nbCours  = mesCours.size();
+        long nbTD     = mesCours.stream().filter(c -> "TD".equals(c.getType())).count();
+        long nbTP     = mesCours.stream().filter(c -> "TP".equals(c.getType())).count();
+        stats.getChildren().addAll(
+                createCarte("📚", "Cours cette semaine", String.valueOf(nbCours), BLEU_MID),
+                createCarte("📝", "TD", String.valueOf(nbTD), VERT),
+                createCarte("🔬", "TP", String.valueOf(nbTP), ORANGE)
+        );
+
+        // ── Grille hebdomadaire ──
+        GridPane grille = buildGrilleEtudiant(mesCours);
+        ScrollPane scroll = new ScrollPane(grille);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: white;");
+
+        // ── Sélecteur de groupe (si l'étudiant veut filtrer) ──
+        HBox filtres = new HBox(10);
+        filtres.setAlignment(Pos.CENTER_LEFT);
+        Label lblFiltrer = new Label("Filtrer par groupe :");
+        lblFiltrer.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+
+        ComboBox<String> cbGroupe = new ComboBox<>();
+        cbGroupe.getItems().add("Tous");
+        tousLesCours.stream()
+                .map(Cours::getGroupe)
+                .distinct()
+                .sorted()
+                .forEach(cbGroupe.getItems()::add);
+        cbGroupe.setValue(classeFinale.equals("Toutes") ? "Tous" : classeFinale);
+        cbGroupe.setPrefWidth(150);
+
+        Button btnFiltrer = createBouton("🔍 Filtrer", BLEU_MID);
+        btnFiltrer.setOnAction(e -> {
+            String groupeChoisi = cbGroupe.getValue();
+            List<Cours> filtrés = tousLesCours.stream()
+                    .filter(c -> "Tous".equals(groupeChoisi) ||
+                            c.getGroupe().equals(groupeChoisi))
+                    .collect(java.util.stream.Collectors.toList());
+            GridPane nouvelleGrille = buildGrilleEtudiant(filtrés);
+            scroll.setContent(nouvelleGrille);
+
+            // Mise à jour stats
+            stats.getChildren().setAll(
+                    createCarte("📚", "Cours", String.valueOf(filtrés.size()), BLEU_MID),
+                    createCarte("📝", "TD", String.valueOf(
+                            filtrés.stream().filter(c -> "TD".equals(c.getType())).count()), VERT),
+                    createCarte("🔬", "TP", String.valueOf(
+                            filtrés.stream().filter(c -> "TP".equals(c.getType())).count()), ORANGE)
+            );
+        });
+
+        filtres.getChildren().addAll(lblFiltrer, cbGroupe, btnFiltrer);
+
+        // ── Recherche salle libre ──
+        Button btnRechercherSalle = createBouton("🔍 Trouver une salle libre", VIOLET);
+        btnRechercherSalle.setOnAction(e -> {
+            setActif(btnRechercherSalle); // pas idéal mais fonctionnel
+            showRechercherSalle();
+        });
+
+        panel.getChildren().addAll(
+                titre, sousTitre, stats, filtres, scroll, btnRechercherSalle);
+        contentArea.getChildren().setAll(panel);
+    }
+
+    // ── Grille hebdomadaire pour l'étudiant ──
+    private GridPane buildGrilleEtudiant(List<Cours> coursList) {
+        GridPane grille = new GridPane();
+        grille.setHgap(2);
+        grille.setVgap(2);
+        grille.setPadding(new Insets(10));
+        grille.setStyle("-fx-background-color: white;");
+
+        String[] JOURS       = {"LUNDI","MARDI","MERCREDI","JEUDI","VENDREDI","SAMEDI"};
+        String[] JOURS_EN    = {"MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"};
+        String[] CRENEAUX    = {"08:00-10:00","10:00-12:00","12:00-14:00","14:00-16:00","16:00-18:00"};
+        String[] HEURES_DEB  = {"08","10","12","14","16"};
+
+        // Contraintes colonnes
+        ColumnConstraints cc0 = new ColumnConstraints(); cc0.setPrefWidth(100);
+        grille.getColumnConstraints().add(cc0);
+        for (int i = 0; i < JOURS.length; i++) {
+            ColumnConstraints cc = new ColumnConstraints(); cc.setPrefWidth(150);
+            grille.getColumnConstraints().add(cc);
+        }
+
+        // En-tête vide
+        grille.add(new Label(""), 0, 0);
+
+        // En-têtes jours
+        for (int j = 0; j < JOURS.length; j++) {
+            Label lblJour = new Label(JOURS[j]);
+            lblJour.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+            lblJour.setTextFill(Color.WHITE);
+            lblJour.setAlignment(Pos.CENTER);
+            lblJour.setMaxWidth(Double.MAX_VALUE);
+            lblJour.setPadding(new Insets(8));
+            lblJour.setStyle("-fx-background-color: #1A3A5C; -fx-background-radius: 4;");
+            grille.add(lblJour, j + 1, 0);
+        }
+
+        // Créneaux horaires
+        for (int c = 0; c < CRENEAUX.length; c++) {
+            Label lblHeure = new Label(CRENEAUX[c]);
+            lblHeure.setFont(Font.font("Arial", FontWeight.BOLD, 11));
+            lblHeure.setTextFill(Color.web(BLEU_MID));
+            lblHeure.setPadding(new Insets(8));
+            lblHeure.setAlignment(Pos.CENTER);
+            lblHeure.setMaxWidth(Double.MAX_VALUE);
+            lblHeure.setStyle("-fx-background-color: #EBF5FB; -fx-background-radius: 4;");
+            grille.add(lblHeure, 0, c + 1);
+
+            // Cellules vides
+            for (int j = 0; j < JOURS.length; j++) {
+                Label vide = new Label("");
+                vide.setMaxWidth(Double.MAX_VALUE);
+                vide.setMinHeight(60);
+                vide.setStyle("-fx-background-color: #F2F3F4; -fx-background-radius: 4;");
+                grille.add(vide, j + 1, c + 1);
+            }
+        }
+
+        // Remplir avec les cours
+        for (Cours cours : coursList) {
+            if (cours.getCreneau() == null) continue;
+
+            String jourCours = cours.getCreneau().getJour().name();
+            String heureDeb  = cours.getCreneau().getHeureDebut().toString();
+
+            int col = -1;
+            for (int j = 0; j < JOURS_EN.length; j++) {
+                if (JOURS_EN[j].equals(jourCours)) { col = j + 1; break; }
+            }
+            int row = -1;
+            for (int h = 0; h < HEURES_DEB.length; h++) {
+                if (heureDeb.startsWith(HEURES_DEB[h])) { row = h + 1; break; }
+            }
+
+            if (col == -1 || row == -1) continue;
+
+            VBox card = new VBox(3);
+            card.setPadding(new Insets(6));
+            card.setMinHeight(60);
+            card.setMaxWidth(Double.MAX_VALUE);
+
+            String couleur;
+            switch (cours.getType()) {
+                case "CM":     couleur = "#2471A3"; break;
+                case "TD":     couleur = "#1E8449"; break;
+                case "TP":     couleur = "#D35400"; break;
+                case "EXAMEN": couleur = "#922B21"; break;
+                default:       couleur = "#7D3C98";
+            }
+
+            card.setStyle(
+                    "-fx-background-color: " + couleur + ";" +
+                            "-fx-background-radius: 6;" +
+                            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 4, 0, 0, 2);"
+            );
+
+            Label lblMatiere = new Label(cours.getMatiere());
+            lblMatiere.setFont(Font.font("Arial", FontWeight.BOLD, 11));
+            lblMatiere.setTextFill(Color.WHITE);
+            lblMatiere.setWrapText(true);
+
+            Label lblInfo = new Label(cours.getGroupe() + " • " + cours.getType());
+            lblInfo.setFont(Font.font("Arial", 10));
+            lblInfo.setTextFill(Color.web("#D6EAF8"));
+
+            Label lblSalle = new Label("🏫 " + cours.getNumeroSalle());
+            lblSalle.setFont(Font.font("Arial", 10));
+            lblSalle.setTextFill(Color.web("#D6EAF8"));
+
+            card.getChildren().addAll(lblMatiere, lblInfo, lblSalle);
+            grille.add(card, col, row);
+        }
+
+        return grille;
+    }
+
+    private int getLigneGrille(String heureDebut) {
+        if (heureDebut.startsWith("8") || heureDebut.startsWith("08")) return 1;
+        if (heureDebut.startsWith("10")) return 2;
+        if (heureDebut.startsWith("12")) return 3;
+        if (heureDebut.startsWith("14")) return 4;
+        if (heureDebut.startsWith("16")) return 5;
+        return -1;
     }
     public static void main(String[] args) {
         Application.launch(MainView.class, args);
