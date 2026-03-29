@@ -3,6 +3,8 @@ package view;
 import dao.SalleDAO;
 import dao.CoursDAO;
 import dao.BatimentDAO;
+import dao.NotificationDAO;
+import model.Notification;
 import dao.ConflitDAO;
 import model.Salle;
 import model.Cours;
@@ -133,12 +135,35 @@ public class MainView extends Application {
         Button btnUsers = createMenuButton("\uD83D\uDC65  Utilisateurs");
         Button btnEquipements = createMenuButton("\uD83D\uDD27  \u00C9quipements");
 
+        // Bouton notifications avec compteur
+        dao.NotificationDAO notifDAO = new dao.NotificationDAO();
+        int nbNotifs = SessionManager.getInstance().estConnecte() ?
+                notifDAO.getNombreNonLues(SessionManager.getInstance().getUtilisateur().getId()) : 0;
+
+        Button btnNotifs = createMenuButton("🔔  Notifications" +
+                (nbNotifs > 0 ? " (" + nbNotifs + ")" : ""));
+        btnNotifs.setOnAction(e -> {
+            setActif(btnNotifs);
+            showNotifications();
+        });
+
         btnEquipements.setOnAction(e -> { setActif(btnEquipements); showEquipements(); });
         btnUsers.setOnAction(e -> { setActif(btnUsers); showUtilisateurs(); });
         btnDash.setOnAction(e -> { setActif(btnDash); showDashboard(); });
         btnSalles.setOnAction(e -> { setActif(btnSalles); showSalles(); });
         btnCours.setOnAction(e -> { setActif(btnCours); showCours(); });
         btnBatiments.setOnAction(e -> { setActif(btnBatiments); showBatiments(); });
+
+        Button btnReservations = createMenuButton("📋  Réservations");
+        btnReservations.setOnAction(e -> {
+            setActif(btnReservations);
+            showReservations();
+        });
+        Button btnGenererEdt = createMenuButton("📄  Générer EDT");
+        btnGenererEdt.setOnAction(e -> {
+            setActif(btnGenererEdt);
+            showGenererEmploiDuTemps();
+        });
 
         btnConflits.setOnAction(e -> { setActif(btnConflits); showConflits(); });
         btnRecherche.setOnAction(e -> { setActif(btnRecherche); showRechercherSalle(); });
@@ -163,39 +188,48 @@ public class MainView extends Application {
         String role = session.getRole();
 
         // Par défaut on cache tout
-        btnDash.setVisible(false);      btnDash.setManaged(false);
-        btnSalles.setVisible(false);    btnSalles.setManaged(false);
-        btnCours.setVisible(false);     btnCours.setManaged(false);
-        btnBatiments.setVisible(false); btnBatiments.setManaged(false);
-        btnEmploi.setVisible(false);    btnEmploi.setManaged(false);
-        btnConflits.setVisible(false);  btnConflits.setManaged(false);
-        btnRecherche.setVisible(false); btnRecherche.setManaged(false);
-        btnUsers.setVisible(false);      btnUsers.setManaged(false);
-        btnEquipements.setVisible(false); btnEquipements.setManaged(false);
+        btnDash.setVisible(false);          btnDash.setManaged(false);
+        btnSalles.setVisible(false);        btnSalles.setManaged(false);
+        btnCours.setVisible(false);         btnCours.setManaged(false);
+        btnBatiments.setVisible(false);     btnBatiments.setManaged(false);
+        btnEmploi.setVisible(false);        btnEmploi.setManaged(false);
+        btnConflits.setVisible(false);      btnConflits.setManaged(false);
+        btnRecherche.setVisible(false);     btnRecherche.setManaged(false);
+        btnUsers.setVisible(false);         btnUsers.setManaged(false);
+        btnEquipements.setVisible(false);   btnEquipements.setManaged(false);
+        btnReservations.setVisible(false);  btnReservations.setManaged(false);
+        btnGenererEdt.setVisible(false);    btnGenererEdt.setManaged(false);
+        btnNotifs.setVisible(false);        btnNotifs.setManaged(false);
 
         // On affiche selon le rôle
         switch (role) {
             case "ADMINISTRATEUR":
-                btnDash.setVisible(true);      btnDash.setManaged(true);
-                btnSalles.setVisible(true);    btnSalles.setManaged(true);
-                btnBatiments.setVisible(true); btnBatiments.setManaged(true);
-                btnCours.setVisible(true);     btnCours.setManaged(true);
-                btnConflits.setVisible(true);  btnConflits.setManaged(true);
-                btnUsers.setVisible(true);     btnUsers.setManaged(true);  // ← ajoute cette ligne
-                btnEquipements.setVisible(true); btnEquipements.setManaged(true);
+                btnDash.setVisible(true);          btnDash.setManaged(true);
+                btnSalles.setVisible(true);        btnSalles.setManaged(true);
+                btnBatiments.setVisible(true);     btnBatiments.setManaged(true);
+                btnConflits.setVisible(true);      btnConflits.setManaged(true);
+                btnUsers.setVisible(true);         btnUsers.setManaged(true);
+                btnEquipements.setVisible(true);   btnEquipements.setManaged(true);
+
                 break;
+
             case "GESTIONNAIRE":
-                btnCours.setVisible(true);     btnCours.setManaged(true);
-                btnConflits.setVisible(true);  btnConflits.setManaged(true);
-                btnEmploi.setVisible(true);    btnEmploi.setManaged(true);
+                btnCours.setVisible(true);         btnCours.setManaged(true);
+                btnConflits.setVisible(true);      btnConflits.setManaged(true);
+                btnReservations.setVisible(true);  btnReservations.setManaged(true);
+                btnGenererEdt.setVisible(true);    btnGenererEdt.setManaged(true);
                 break;
+
             case "ENSEIGNANT":
-                btnEmploi.setVisible(true);    btnEmploi.setManaged(true);
-                btnRecherche.setVisible(true); btnRecherche.setManaged(true);
+                btnEmploi.setVisible(true);        btnEmploi.setManaged(true);
+                btnRecherche.setVisible(true);     btnRecherche.setManaged(true);
+                btnNotifs.setVisible(true);        btnNotifs.setManaged(true);
                 break;
+
             case "ETUDIANT":
-                btnEmploi.setVisible(true);    btnEmploi.setManaged(true);
-                btnRecherche.setVisible(true); btnRecherche.setManaged(true);
+                btnEmploi.setVisible(true);        btnEmploi.setManaged(true);
+                btnRecherche.setVisible(true);     btnRecherche.setManaged(true);
+                btnNotifs.setVisible(true);        btnNotifs.setManaged(true);
                 break;
         }
 
@@ -207,9 +241,20 @@ public class MainView extends Application {
         infoTitre.setTextFill(Color.web("#7FB3D3"));
         infoTitre.setPadding(new Insets(15, 0, 10, 0));
 
-        Label info = new Label("  Yacine & Amina\n  L2 Informatique\n  Mars 2026");
+        // Affiche le rôle et l'université
+        String nomUser = SessionManager.getInstance().estConnecte() ?
+                SessionManager.getInstance().getUtilisateur().getNomComplet() : "";
+        String roleUser = SessionManager.getInstance().getRole();
+
+        Label info = new Label(
+                "  📍 Université Iba Der Thiam\n" +
+                        "  🎓 Licence 2 Informatique\n" +
+                        "  📅 Semestre 4 - 2026\n" +
+                        "  🔒 Compte " + roleUser
+        );
         info.setFont(Font.font("Arial", 11));
         info.setTextFill(Color.web("#AED6F1"));
+        info.setPadding(new Insets(0, 0, 0, 5));
 
         // Bouton déconnexion
         Button btnDeconnexion = new Button("🚪 Déconnexion");
@@ -236,7 +281,9 @@ public class MainView extends Application {
         setActif(btnDash);
         menu.getChildren().addAll(menuTitre, btnDash, btnSalles,
                 btnCours, btnBatiments, btnEmploi, btnConflits,
-                btnRecherche, btnUsers, btnEquipements, sep, infoTitre, info, btnDeconnexion);
+                btnRecherche, btnUsers, btnEquipements,
+                btnReservations, btnGenererEdt,btnNotifs,
+                sep, infoTitre, info, btnDeconnexion);
         return menu;
     }
 
@@ -565,7 +612,11 @@ public class MainView extends Application {
         HBox actions = new HBox(10);
         Button btnAjouter   = createBouton("+ Ajouter", BLEU_MID);
         Button btnSupprimer = createBouton("🗑 Supprimer", "#C0392B");
-        actions.getChildren().addAll(btnAjouter, btnSupprimer);
+        Button btnModifier = createBouton("✏️ Modifier", ORANGE);
+        actions.getChildren().addAll(btnAjouter, btnModifier, btnSupprimer);
+
+
+
 
         TableView<Cours> table = createTableCours();
         table.setPrefHeight(450);
@@ -576,6 +627,14 @@ public class MainView extends Application {
         table.setItems(data);
 
         btnAjouter.setOnAction(e -> showFormulaireAjoutCours(data));
+        btnModifier.setOnAction(e -> {
+            Cours selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("⚠️ Sélectionne un cours à modifier !");
+                return;
+            }
+            showFormulaireModifierCours(selected, data);
+        });
         btnSupprimer.setOnAction(e -> {
             Cours selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
@@ -751,13 +810,21 @@ public class MainView extends Application {
         titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
         titre.setTextFill(Color.web(BLEU_FONCE));
 
+        // Barre d'actions
+        HBox actions = new HBox(10);
+        Button btnAjouter   = createBouton("+ Ajouter", BLEU_MID);
+        Button btnSupprimer = createBouton("🗑 Supprimer", "#C0392B");
+        Button btnCarte     = createBouton("🗺️ Carte interactive", VIOLET);
+        actions.getChildren().addAll(btnAjouter, btnSupprimer, btnCarte);
+
+        // Tableau
         TableView<model.Batiment> table = new TableView<>();
         table.setStyle(
                 "-fx-background-color: white;" +
                         "-fx-background-radius: 8;" +
                         "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
         );
-        table.setPrefHeight(500);
+        table.setPrefHeight(350);
 
         TableColumn<model.Batiment, Integer> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(new PropertyValueFactory<>("id"));
@@ -775,13 +842,227 @@ public class MainView extends Application {
         colEtages.setCellValueFactory(new PropertyValueFactory<>("nombreEtages"));
         colEtages.setPrefWidth(100);
 
-        table.getColumns().addAll(colId, colNom, colLoc, colEtages);
+        // Colonne salles
+        TableColumn<model.Batiment, String> colSalles = new TableColumn<>("Salles");
+        colSalles.setCellValueFactory(data -> {
+            SalleDAO salleDAO = new SalleDAO();
+            long nbSalles = salleDAO.getToutesLesSalles().stream()
+                    .filter(s -> s.getBatimentId() == data.getValue().getId())
+                    .count();
+            return new javafx.beans.property.SimpleStringProperty(nbSalles + " salle(s)");
+        });
+        colSalles.setPrefWidth(100);
+
+        table.getColumns().addAll(colId, colNom, colLoc, colEtages, colSalles);
 
         BatimentDAO dao = new BatimentDAO();
-        table.setItems(FXCollections.observableArrayList(dao.getTousLesBatiments()));
+        ObservableList<model.Batiment> data =
+                FXCollections.observableArrayList(dao.getTousLesBatiments());
+        table.setItems(data);
 
-        panel.getChildren().addAll(titre, table);
+        // Actions
+        btnAjouter.setOnAction(e -> showFormulaireAjoutBatiment(data));
+
+        btnSupprimer.setOnAction(e -> {
+            model.Batiment selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("⚠️ Sélectionne un bâtiment !");
+                return;
+            }
+            if (dao.supprimer(selected.getId())) {
+                data.setAll(dao.getTousLesBatiments());
+            }
+        });
+
+        btnCarte.setOnAction(e -> showCarteBatiments());
+
+        panel.getChildren().addAll(titre, actions, table);
         contentArea.getChildren().setAll(panel);
+    }
+
+    private void showFormulaireAjoutBatiment(ObservableList<model.Batiment> data) {
+        Stage popup = new Stage();
+        popup.setTitle("Ajouter un bâtiment");
+
+        VBox form = new VBox(12);
+        form.setPadding(new Insets(25));
+        form.setPrefWidth(320);
+        form.setStyle("-fx-background-color: white;");
+
+        Label titre = new Label("🏢 Nouveau Bâtiment");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        TextField tfNom    = createField("Nom (ex: Bâtiment C)");
+        TextField tfLoc    = createField("Localisation (ex: Campus Sud)");
+        TextField tfEtages = createField("Nombre d'étages (ex: 3)");
+
+        Label lblMsg = new Label("");
+        lblMsg.setTextFill(Color.RED);
+
+        Button btnSave = createBouton("💾 Enregistrer", BLEU_MID);
+        btnSave.setPrefWidth(Double.MAX_VALUE);
+
+        btnSave.setOnAction(e -> {
+            if (tfNom.getText().isEmpty() || tfEtages.getText().isEmpty()) {
+                lblMsg.setText("⚠️ Remplis au moins le nom et les étages !");
+                return;
+            }
+            try {
+                model.Batiment b = new model.Batiment();
+                b.setNom(tfNom.getText());
+                b.setLocalisation(tfLoc.getText());
+                b.setNombreEtages(Integer.parseInt(tfEtages.getText()));
+
+                BatimentDAO batDAO = new BatimentDAO();
+                if (batDAO.ajouter(b)) {
+                    data.setAll(batDAO.getTousLesBatiments());
+                    popup.close();
+                } else {
+                    lblMsg.setText("❌ Erreur lors de l'ajout !");
+                }
+            } catch (NumberFormatException ex) {
+                lblMsg.setText("⚠️ Le nombre d'étages doit être un nombre !");
+            }
+        });
+
+        form.getChildren().addAll(
+                titre,
+                new Label("Nom :"),           tfNom,
+                new Label("Localisation :"),  tfLoc,
+                new Label("Nb étages :"),     tfEtages,
+                lblMsg, btnSave
+        );
+
+        popup.setScene(new Scene(form));
+        popup.show();
+    }
+
+    private void showCarteBatiments() {
+        Stage popup = new Stage();
+        popup.setTitle("🗺️ Carte des Bâtiments");
+        popup.setWidth(800);
+        popup.setHeight(600);
+
+        VBox root = new VBox(15);
+        root.setPadding(new Insets(20));
+        root.setStyle("-fx-background-color: " + GRIS_CLAIR + ";");
+
+        Label titre = new Label("🗺️ Carte Interactive des Bâtiments");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        // Zone carte
+        javafx.scene.layout.Pane carte = new javafx.scene.layout.Pane();
+        carte.setStyle(
+                "-fx-background-color: #E8F4FD;" +
+                        "-fx-background-radius: 12;" +
+                        "-fx-border-color: #BDC3C7;" +
+                        "-fx-border-radius: 12;"
+        );
+        carte.setPrefSize(760, 450);
+
+        // Récupère les données
+        BatimentDAO batDAO = new BatimentDAO();
+        SalleDAO salleDAO  = new SalleDAO();
+        List<model.Batiment> batiments = batDAO.getTousLesBatiments();
+        List<Salle> salles = salleDAO.getToutesLesSalles();
+
+        // Positions des bâtiments sur la carte
+        double[][] positions = {
+                {100, 150}, {350, 150}, {600, 150},
+                {100, 320}, {350, 320}, {600, 320}
+        };
+
+        for (int i = 0; i < batiments.size() && i < positions.length; i++) {
+            model.Batiment b = batiments.get(i);
+            double x = positions[i][0];
+            double y = positions[i][1];
+
+            // Compte les salles du bâtiment
+            long nbSalles = salles.stream()
+                    .filter(s -> s.getBatimentId() == b.getId())
+                    .count();
+
+            // Bâtiment (rectangle)
+            javafx.scene.shape.Rectangle rect = new javafx.scene.shape.Rectangle(120, 100);
+            rect.setX(x);
+            rect.setY(y);
+            rect.setArcWidth(10);
+            rect.setArcHeight(10);
+            rect.setFill(javafx.scene.paint.Color.web(BLEU_MID));
+            rect.setEffect(new javafx.scene.effect.DropShadow(8,
+                    javafx.scene.paint.Color.rgb(0,0,0,0.2)));
+
+            // Nom du bâtiment
+            javafx.scene.text.Text lblNom = new javafx.scene.text.Text(b.getNom());
+            lblNom.setX(x + 10);
+            lblNom.setY(y + 25);
+            lblNom.setFont(javafx.scene.text.Font.font("Arial",
+                    javafx.scene.text.FontWeight.BOLD, 13));
+            lblNom.setFill(javafx.scene.paint.Color.WHITE);
+
+            // Localisation
+            javafx.scene.text.Text lblLoc = new javafx.scene.text.Text(
+                    b.getLocalisation() != null ? b.getLocalisation() : "");
+            lblLoc.setX(x + 10);
+            lblLoc.setY(y + 45);
+            lblLoc.setFont(javafx.scene.text.Font.font("Arial", 11));
+            lblLoc.setFill(javafx.scene.paint.Color.web("#D6EAF8"));
+
+            // Étages
+            javafx.scene.text.Text lblEtages = new javafx.scene.text.Text(
+                    b.getNombreEtages() + " étage(s)");
+            lblEtages.setX(x + 10);
+            lblEtages.setY(y + 65);
+            lblEtages.setFont(javafx.scene.text.Font.font("Arial", 11));
+            lblEtages.setFill(javafx.scene.paint.Color.web("#D6EAF8"));
+
+            // Salles
+            javafx.scene.text.Text lblSalles = new javafx.scene.text.Text(
+                    nbSalles + " salle(s)");
+            lblSalles.setX(x + 10);
+            lblSalles.setY(y + 85);
+            lblSalles.setFont(javafx.scene.text.Font.font("Arial",
+                    javafx.scene.text.FontWeight.BOLD, 11));
+            lblSalles.setFill(javafx.scene.paint.Color.YELLOW);
+
+            // Tooltip au survol
+            javafx.scene.control.Tooltip tooltip = new javafx.scene.control.Tooltip(
+                    b.getNom() + "\n" +
+                            "Localisation : " + b.getLocalisation() + "\n" +
+                            "Étages : " + b.getNombreEtages() + "\n" +
+                            "Salles : " + nbSalles
+            );
+            javafx.scene.control.Tooltip.install(rect, tooltip);
+
+            // Animation au survol
+            rect.setOnMouseEntered(ev ->
+                    rect.setFill(javafx.scene.paint.Color.web("#1A3A5C")));
+            rect.setOnMouseExited(ev ->
+                    rect.setFill(javafx.scene.paint.Color.web(BLEU_MID)));
+
+            carte.getChildren().addAll(rect, lblNom, lblLoc, lblEtages, lblSalles);
+        }
+
+        // Légende
+        HBox legende = new HBox(20);
+        legende.setAlignment(Pos.CENTER_LEFT);
+        javafx.scene.shape.Rectangle legRect =
+                new javafx.scene.shape.Rectangle(15, 15,
+                        javafx.scene.paint.Color.web(BLEU_MID));
+        legRect.setArcWidth(4); legRect.setArcHeight(4);
+        Label legLabel = new Label("Bâtiment  (survolez pour voir les détails)");
+        legLabel.setFont(Font.font("Arial", 12));
+        legLabel.setTextFill(Color.GRAY);
+        legende.getChildren().addAll(legRect, legLabel);
+
+        root.getChildren().addAll(titre, carte, legende);
+
+        ScrollPane scroll = new ScrollPane(root);
+        scroll.setFitToWidth(true);
+        popup.setScene(new Scene(scroll));
+        popup.show();
     }
 
     // ── Vue Conflits ──
@@ -1915,6 +2196,418 @@ public class MainView extends Application {
         if (heureDebut.startsWith("14")) return 4;
         if (heureDebut.startsWith("16")) return 5;
         return -1;
+    }
+    private void showReservations() {
+        VBox panel = new VBox(15);
+        panel.setPadding(new Insets(5));
+
+        Label titre = new Label("📋 Gestion des Réservations");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        Label sousTitre = new Label("Demandes de réservation en attente de validation");
+        sousTitre.setFont(Font.font("Arial", 13));
+        sousTitre.setTextFill(Color.GRAY);
+
+        // Tableau
+        TableView<model.Reservation> table = new TableView<>();
+        table.setStyle(
+                "-fx-background-color: white;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+        );
+        table.setPrefHeight(400);
+
+        TableColumn<model.Reservation, Integer> colId = new TableColumn<>("ID");
+        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
+        colId.setPrefWidth(50);
+
+        TableColumn<model.Reservation, String> colDemandeur = new TableColumn<>("Demandeur");
+        colDemandeur.setCellValueFactory(new PropertyValueFactory<>("nomDemandeur"));
+        colDemandeur.setPrefWidth(150);
+
+        TableColumn<model.Reservation, String> colSalle = new TableColumn<>("Salle");
+        colSalle.setCellValueFactory(new PropertyValueFactory<>("numeroSalle"));
+        colSalle.setPrefWidth(80);
+
+        TableColumn<model.Reservation, String> colMotif = new TableColumn<>("Motif");
+        colMotif.setCellValueFactory(new PropertyValueFactory<>("motif"));
+        colMotif.setPrefWidth(200);
+
+        TableColumn<model.Reservation, String> colStatut = new TableColumn<>("Statut");
+        colStatut.setCellValueFactory(new PropertyValueFactory<>("statut"));
+        colStatut.setCellFactory(col -> new TableCell<model.Reservation, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else if (item.equals("EN_ATTENTE")) {
+                    setText("⏳ En attente");
+                    setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;");
+                } else if (item.equals("VALIDEE")) {
+                    setText("✅ Validée");
+                    setStyle("-fx-text-fill: #1E8449; -fx-font-weight: bold;");
+                } else {
+                    setText("❌ Annulée");
+                    setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
+                }
+            }
+        });
+        colStatut.setPrefWidth(120);
+
+        table.getColumns().addAll(colId, colDemandeur, colSalle, colMotif, colStatut);
+
+        // Charger les réservations
+        dao.ReservationDAO reservationDAO = new dao.ReservationDAO();
+        ObservableList<model.Reservation> data =
+                FXCollections.observableArrayList(reservationDAO.getToutesLesReservations());
+        table.setItems(data);
+
+        // Boutons
+        HBox actions = new HBox(10);
+        Button btnValider  = createBouton("✅ Valider", VERT);
+        Button btnRefuser  = createBouton("❌ Refuser", "#C0392B");
+        actions.getChildren().addAll(btnValider, btnRefuser);
+
+        btnValider.setOnAction(e -> {
+            model.Reservation selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("⚠️ Sélectionne une réservation !");
+                return;
+            }
+            if (reservationDAO.changerStatut(selected.getId(), "VALIDEE")) {
+                data.setAll(reservationDAO.getToutesLesReservations());
+            }
+        });
+
+        btnRefuser.setOnAction(e -> {
+            model.Reservation selected = table.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                showAlert("⚠️ Sélectionne une réservation !");
+                return;
+            }
+            if (reservationDAO.changerStatut(selected.getId(), "ANNULEE")) {
+                data.setAll(reservationDAO.getToutesLesReservations());
+            }
+        });
+
+        panel.getChildren().addAll(titre, sousTitre, actions, table);
+        contentArea.getChildren().setAll(panel);
+    }
+
+    private void showGenererEmploiDuTemps() {
+        VBox panel = new VBox(20);
+        panel.setPadding(new Insets(5));
+
+        Label titre = new Label("📄 Générer l'Emploi du Temps");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        Label sousTitre = new Label("Exportez l'emploi du temps en PDF ou Excel");
+        sousTitre.setFont(Font.font("Arial", 13));
+        sousTitre.setTextFill(Color.GRAY);
+
+        // Aperçu de l'emploi du temps
+        Label titreApercu = new Label("📋 Aperçu des cours planifiés");
+        titreApercu.setFont(Font.font("Arial", FontWeight.BOLD, 15));
+        titreApercu.setTextFill(Color.web(BLEU_FONCE));
+
+        TableView<Cours> table = createTableCours();
+        table.setPrefHeight(350);
+
+        // Boutons export
+        HBox boutons = new HBox(15);
+        boutons.setAlignment(Pos.CENTER_LEFT);
+
+        Button btnPDF   = createBouton("📄 Exporter en PDF",   "#C0392B");
+        Button btnExcel = createBouton("📊 Exporter en Excel", VERT);
+
+        boutons.getChildren().addAll(btnPDF, btnExcel);
+
+        // Actions export
+        btnPDF.setOnAction(e -> {
+            exporterPDF();
+        });
+
+        btnExcel.setOnAction(e -> {
+            exporterExcel();
+        });
+
+        panel.getChildren().addAll(titre, sousTitre, boutons, titreApercu, table);
+        contentArea.getChildren().setAll(panel);
+    }
+
+    private void exporterPDF() {
+        try {
+            CoursDAO coursDAO = new CoursDAO();
+            List<Cours> coursList = coursDAO.getTousLesCours();
+
+            // Créer le fichier PDF
+            String cheminFichier = "emploi_du_temps.txt";
+            java.io.FileWriter fw = new java.io.FileWriter(cheminFichier);
+            fw.write("UNIV-SCHEDULER — Emploi du Temps\n");
+            fw.write("================================\n\n");
+
+            String[] jours = {"MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"};
+            String[] joursLabel = {"Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"};
+
+            for (int i = 0; i < jours.length; i++) {
+                final String jour = jours[i];
+                List<Cours> coursJour = new java.util.ArrayList<>();
+                for (Cours c : coursList) {
+                    if (c.getCreneau() != null &&
+                            c.getCreneau().getJour().name().equals(jour)) {
+                        coursJour.add(c);
+                    }
+                }
+                if (!coursJour.isEmpty()) {
+                    fw.write(joursLabel[i].toUpperCase() + "\n");
+                    fw.write("----------\n");
+                    for (Cours c : coursJour) {
+                        fw.write(c.getCreneau().getHeureDebut() + " → " +
+                                c.getCreneau().getHeureFin() + " | " +
+                                c.getMatiere() + " (" + c.getGroupe() + ") | " +
+                                c.getType() + " | " +
+                                c.getNomEnseignant() + " | " +
+                                "Salle " + c.getNumeroSalle() + "\n");
+                    }
+                    fw.write("\n");
+                }
+            }
+            fw.close();
+
+            showAlert("✅ Emploi du temps exporté !\nFichier : " + cheminFichier);
+
+        } catch (Exception ex) {
+            showAlert("❌ Erreur export : " + ex.getMessage());
+        }
+    }
+
+    private void exporterExcel() {
+        try {
+            CoursDAO coursDAO = new CoursDAO();
+            List<Cours> coursList = coursDAO.getTousLesCours();
+
+            String cheminFichier = "emploi_du_temps.csv";
+            java.io.FileWriter fw = new java.io.FileWriter(cheminFichier);
+            fw.write("Jour,Heure début,Heure fin,Matière,Groupe,Type,Enseignant,Salle\n");
+
+            for (Cours c : coursList) {
+                if (c.getCreneau() != null) {
+                    fw.write(
+                            c.getCreneau().getJour().name() + "," +
+                                    c.getCreneau().getHeureDebut() + "," +
+                                    c.getCreneau().getHeureFin() + "," +
+                                    c.getMatiere() + "," +
+                                    c.getGroupe() + "," +
+                                    c.getType() + "," +
+                                    c.getNomEnseignant() + "," +
+                                    c.getNumeroSalle() + "\n"
+                    );
+                }
+            }
+            fw.close();
+
+            showAlert("✅ Emploi du temps exporté !\nFichier CSV : " + cheminFichier +
+                    "\n(Ouvrable avec Excel)");
+
+        } catch (Exception ex) {
+            showAlert("❌ Erreur export : " + ex.getMessage());
+        }
+    }
+    private void showFormulaireModifierCours(Cours cours, ObservableList<Cours> data) {
+        Stage popup = new Stage();
+        popup.setTitle("Modifier un cours");
+
+        VBox form = new VBox(12);
+        form.setPadding(new Insets(25));
+        form.setPrefWidth(350);
+        form.setStyle("-fx-background-color: white;");
+
+        Label titre = new Label("✏️ Modifier le Cours");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        // Pré-remplir avec les valeurs actuelles
+        TextField tfMatiere = createField("Matière");
+        tfMatiere.setText(cours.getMatiere());
+
+        TextField tfGroupe = createField("Groupe");
+        tfGroupe.setText(cours.getGroupe());
+
+        ComboBox<String> cbType = new ComboBox<>();
+        cbType.getItems().addAll("CM", "TD", "TP", "EXAMEN");
+        cbType.setValue(cours.getType());
+        cbType.setPrefWidth(Double.MAX_VALUE);
+
+        TextField tfEnseignant = createField("ID Enseignant");
+        tfEnseignant.setText(String.valueOf(cours.getEnseignantId()));
+
+        TextField tfSalle = createField("ID Salle");
+        tfSalle.setText(String.valueOf(cours.getSalleId()));
+
+        Label lblMsg = new Label("");
+        lblMsg.setTextFill(Color.RED);
+
+        Button btnSave = createBouton("💾 Enregistrer", BLEU_MID);
+        btnSave.setPrefWidth(Double.MAX_VALUE);
+
+        btnSave.setOnAction(e -> {
+            if (tfMatiere.getText().isEmpty() || tfGroupe.getText().isEmpty()
+                    || cbType.getValue() == null) {
+                lblMsg.setText("⚠️ Remplis tous les champs !");
+                return;
+            }
+            try {
+                // Vérifier conflit salle
+                int newSalleId = Integer.parseInt(tfSalle.getText());
+                int newEnseignantId = Integer.parseInt(tfEnseignant.getText());
+
+                dao.ConflitDAO conflitDAO = new dao.ConflitDAO();
+                if (newSalleId != cours.getSalleId() &&
+                        conflitDAO.salleDejaOccupee(newSalleId, cours.getCreneauId())) {
+                    lblMsg.setText("❌ CONFLIT : cette salle est déjà occupée !");
+                    return;
+                }
+
+                // Mettre à jour en base
+                String sql = "UPDATE cours SET matiere=?, groupe=?, type=?, " +
+                        "enseignant_id=?, salle_id=? WHERE id=?";
+                java.sql.Connection conn = database.DatabaseConnection.getConnection();
+                java.sql.PreparedStatement ps = conn.prepareStatement(sql);
+                ps.setString(1, tfMatiere.getText());
+                ps.setString(2, tfGroupe.getText());
+                ps.setString(3, cbType.getValue());
+                ps.setInt   (4, newEnseignantId);
+                ps.setInt   (5, newSalleId);
+                ps.setInt   (6, cours.getId());
+
+                if (ps.executeUpdate() > 0) {
+                    CoursDAO coursDAO = new CoursDAO();
+                    data.setAll(coursDAO.getTousLesCours());
+                    popup.close();
+                    showAlert("✅ Cours modifié avec succès !");
+                }
+            } catch (NumberFormatException ex) {
+                lblMsg.setText("⚠️ Les IDs doivent être des nombres !");
+            } catch (java.sql.SQLException ex) {
+                lblMsg.setText("❌ Erreur SQL : " + ex.getMessage());
+            }
+        });
+
+        form.getChildren().addAll(
+                titre,
+                new Label("Matière :"),       tfMatiere,
+                new Label("Groupe :"),        tfGroupe,
+                new Label("Type :"),          cbType,
+                new Label("ID Enseignant :"), tfEnseignant,
+                new Label("ID Salle :"),      tfSalle,
+                lblMsg, btnSave
+        );
+
+        popup.setScene(new Scene(form));
+        popup.show();
+    }
+    private void showNotifications() {
+        VBox panel = new VBox(15);
+        panel.setPadding(new Insets(5));
+
+        int userId = SessionManager.getInstance().getUtilisateur().getId();
+        dao.NotificationDAO notifDAO = new dao.NotificationDAO();
+
+        Label titre = new Label("🔔 Mes Notifications");
+        titre.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        titre.setTextFill(Color.web(BLEU_FONCE));
+
+        // Bouton tout marquer comme lu
+        Button btnLuTout = createBouton("✅ Tout marquer comme lu", BLEU_MID);
+        btnLuTout.setOnAction(e -> {
+            notifDAO.toutMarquerLues(userId);
+            showNotifications();
+        });
+
+        // Liste des notifications
+        VBox listeNotifs = new VBox(10);
+        List<Notification> notifications = notifDAO.getMesNotifications(userId);
+
+        if (notifications.isEmpty()) {
+            HBox vide = new HBox();
+            vide.setPadding(new Insets(40));
+            vide.setAlignment(Pos.CENTER);
+            vide.setStyle("-fx-background-color: white; -fx-background-radius: 8;");
+            Label lblVide = new Label("🔔 Aucune notification");
+            lblVide.setFont(Font.font("Arial", 15));
+            lblVide.setTextFill(Color.GRAY);
+            vide.getChildren().add(lblVide);
+            listeNotifs.getChildren().add(vide);
+        } else {
+            for (Notification n : notifications) {
+                HBox card = new HBox(15);
+                card.setPadding(new Insets(15));
+                card.setAlignment(Pos.CENTER_LEFT);
+
+                String bgColor = n.isLue() ? "white" : "#EBF5FB";
+                String borderColor = n.isLue() ? "#BDC3C7" : BLEU_MID;
+
+                card.setStyle(
+                        "-fx-background-color: " + bgColor + ";" +
+                                "-fx-background-radius: 8;" +
+                                "-fx-border-color: " + borderColor + ";" +
+                                "-fx-border-width: 0 0 0 4;" +
+                                "-fx-border-radius: 8;" +
+                                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);"
+                );
+
+                Label icone = new Label(n.isLue() ? "📭" : "📬");
+                icone.setFont(Font.font("Arial", 24));
+
+                VBox details = new VBox(5);
+                HBox.setHgrow(details, Priority.ALWAYS);
+
+                Label lblMessage = new Label(n.getMessage());
+                lblMessage.setFont(Font.font("Arial",
+                        n.isLue() ? FontWeight.NORMAL : FontWeight.BOLD, 13));
+                lblMessage.setTextFill(Color.web(BLEU_FONCE));
+                lblMessage.setWrapText(true);
+
+                Label lblDate = new Label(n.getDateEnvoi() != null ?
+                        n.getDateEnvoi().toString().replace("T", " à ").substring(0, 19) : "");
+                lblDate.setFont(Font.font("Arial", 11));
+                lblDate.setTextFill(Color.GRAY);
+
+                details.getChildren().addAll(lblMessage, lblDate);
+
+                // Bouton marquer comme lu
+                Button btnLu = createBouton("Lu", "#7F8C8D");
+                btnLu.setStyle(
+                        "-fx-background-color: #ECF0F1;" +
+                                "-fx-text-fill: #7F8C8D;" +
+                                "-fx-font-size: 11;" +
+                                "-fx-padding: 4 10 4 10;" +
+                                "-fx-cursor: hand;" +
+                                "-fx-background-radius: 4;"
+                );
+                if (!n.isLue()) {
+                    btnLu.setOnAction(e -> {
+                        notifDAO.marquerLue(n.getId());
+                        showNotifications();
+                    });
+                }
+
+                card.getChildren().addAll(icone, details, btnLu);
+                listeNotifs.getChildren().add(card);
+            }
+        }
+
+        ScrollPane scroll = new ScrollPane(listeNotifs);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background-color: transparent;");
+        scroll.setPrefHeight(500);
+
+        panel.getChildren().addAll(titre, btnLuTout, scroll);
+        contentArea.getChildren().setAll(panel);
     }
     public static void main(String[] args) {
         Application.launch(MainView.class, args);

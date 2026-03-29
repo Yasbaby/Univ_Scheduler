@@ -47,21 +47,23 @@ public class LoginView extends Application {
         Separator sep = new Separator();
         sep.setStyle("-fx-background-color: #2E6DA4;");
 
-        Label info = new Label("Licence 2 Informatique\nYacine & Amina\nMars 2026");
+        Label info = new Label(
+                "Université Iba Der Thiam\n" +
+                        "de Thiès - U.I.D.T\n\n" +
+                        "Licence 2 Informatique\n" +
+                        "Semestre 4 - 2026"
+        );
         info.setFont(Font.font("Arial", 12));
         info.setTextFill(Color.web("#7FB3D3"));
         info.setAlignment(Pos.CENTER);
 
         // Comptes de test
         Label lblComptes = new Label(
-                "Comptes de test :\n" +
-                        "admin@univ.sn / admin123\n" +
-                        "gestionnaire@univ.sn / gestionnaire123\n" +
-                        "diallo@univ.sn / enseignant123\n" +
-                        "ba@univ.sn / etudiant123"
+                "Système de Gestion\n" +
+                        "des Salles et Emplois du Temps"
         );
-        lblComptes.setFont(Font.font("Arial", 10));
-        lblComptes.setTextFill(Color.web("#7FB3D3"));
+        lblComptes.setFont(Font.font("Arial", null, javafx.scene.text.FontPosture.ITALIC, 11));
+        lblComptes.setTextFill(Color.web("#5D9CDB"));
         lblComptes.setAlignment(Pos.CENTER);
 
         panneauGauche.getChildren().addAll(
@@ -101,16 +103,67 @@ public class LoginView extends Application {
         lblMdp.setFont(Font.font("Arial", FontWeight.BOLD, 12));
         lblMdp.setTextFill(Color.web(BLEU_FONCE));
 
+        // Champ mot de passe avec bouton voir/cacher
+        HBox mdpBox = new HBox(5);
         PasswordField pfMdp = new PasswordField();
         pfMdp.setPromptText("Votre mot de passe");
         pfMdp.setPrefHeight(40);
         pfMdp.setStyle(
                 "-fx-font-size: 13;" +
                         "-fx-padding: 8;" +
-                        "-fx-background-radius: 6;" +
+                        "-fx-background-radius: 6 0 0 6;" +
                         "-fx-border-color: #BDC3C7;" +
-                        "-fx-border-radius: 6;"
+                        "-fx-border-radius: 6 0 0 6;"
         );
+        HBox.setHgrow(pfMdp, Priority.ALWAYS);
+
+        TextField tfMdpVisible = new TextField();
+        tfMdpVisible.setPromptText("Votre mot de passe");
+        tfMdpVisible.setPrefHeight(40);
+        tfMdpVisible.setStyle(
+                "-fx-font-size: 13;" +
+                        "-fx-padding: 8;" +
+                        "-fx-background-radius: 6 0 0 6;" +
+                        "-fx-border-color: #BDC3C7;" +
+                        "-fx-border-radius: 6 0 0 6;"
+        );
+        tfMdpVisible.setVisible(false);
+        tfMdpVisible.setManaged(false);
+        HBox.setHgrow(tfMdpVisible, Priority.ALWAYS);
+
+        Button btnVoir = new Button("👁");
+        btnVoir.setPrefHeight(40);
+        btnVoir.setStyle(
+                "-fx-background-color: #ECF0F1;" +
+                        "-fx-border-color: #BDC3C7;" +
+                        "-fx-border-radius: 0 6 6 0;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-padding: 8 12 8 12;"
+        );
+
+        // Synchroniser les deux champs
+        pfMdp.textProperty().addListener((obs, old, val) -> {
+            if (pfMdp.isVisible()) tfMdpVisible.setText(val);
+        });
+        tfMdpVisible.textProperty().addListener((obs, old, val) -> {
+            if (tfMdpVisible.isVisible()) pfMdp.setText(val);
+        });
+
+        btnVoir.setOnAction(e -> {
+            if (pfMdp.isVisible()) {
+                tfMdpVisible.setText(pfMdp.getText());
+                pfMdp.setVisible(false);        pfMdp.setManaged(false);
+                tfMdpVisible.setVisible(true);  tfMdpVisible.setManaged(true);
+                btnVoir.setText("🙈");
+            } else {
+                pfMdp.setText(tfMdpVisible.getText());
+                tfMdpVisible.setVisible(false); tfMdpVisible.setManaged(false);
+                pfMdp.setVisible(true);         pfMdp.setManaged(true);
+                btnVoir.setText("👁");
+            }
+        });
+
+        mdpBox.getChildren().addAll(pfMdp, tfMdpVisible, btnVoir);
 
         // Message erreur
         Label lblErreur = new Label("");
@@ -133,7 +186,7 @@ public class LoginView extends Application {
         // Action connexion
         btnConnexion.setOnAction(e -> {
             String email = tfEmail.getText().trim();
-            String mdp   = pfMdp.getText().trim();
+            String mdp = pfMdp.isVisible() ? pfMdp.getText() : tfMdpVisible.getText();
 
             if (email.isEmpty() || mdp.isEmpty()) {
                 lblErreur.setText("⚠️ Remplis tous les champs !");
@@ -193,7 +246,7 @@ public class LoginView extends Application {
                 titreCo, sousCo,
                 new Label(""),
                 lblEmail, tfEmail,
-                lblMdp, pfMdp,
+                lblMdp, mdpBox,
                 lblErreur,
                 btnConnexion
         );

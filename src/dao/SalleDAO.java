@@ -23,6 +23,7 @@ public class SalleDAO {
                 s.setNumero(rs.getString("numero"));
                 s.setCapacite(rs.getInt("capacite"));
                 s.setType(rs.getString("type"));
+                s.setBatimentId(rs.getInt("batiment_id"));
                 s.setDisponible(rs.getBoolean("disponible"));
                 salles.add(s);
             }
