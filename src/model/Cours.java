@@ -55,4 +55,6 @@ public class Cours {
                 " | " + nomEnseignant + " | Salle " + numeroSalle +
                 " | " + (creneau != null ? creneau.toString() : "");
     }
+
+
 }

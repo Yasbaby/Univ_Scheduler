@@ -41,4 +41,7 @@ public class SessionManager {
         if (!estConnecte()) return "";
         return utilisateurConnecte.getRole().getNom();
     }
+    public Utilisateur getUtilisateurConnecte() {
+        return utilisateurConnecte;
+    }
 }

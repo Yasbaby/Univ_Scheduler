@@ -62,4 +62,7 @@ public class Utilisateur {
     public String toString() {
         return getNomComplet() + " (" + (role != null ? role.getNom() : "?") + ")";
     }
+
+
+
 }

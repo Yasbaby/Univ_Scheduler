@@ -73,4 +73,19 @@ public class NotificationDAO {
             return false;
         }
     }
+    public boolean envoyerNotificationGestionnaire(String message, String type, int gestionnaireId) {
+        String sql = "INSERT INTO notification (message, type, lue, date_envoi, destinataire_id) " +
+                "VALUES (?, ?, FALSE, NOW(), ?)";
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, message);
+            ps.setString(2, type);
+            ps.setInt(3, gestionnaireId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("❌ Erreur : " + e.getMessage());
+            return false;
+        }
+    }
 }
