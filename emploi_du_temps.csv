@@ -1,0 +1,4 @@
+Jour,Heure début,Heure fin,Matière,Groupe,Type,Enseignant,Salle
+MONDAY,08:00,10:00,POO Java,G1,TD,Oumar Diallo,A101
+MONDAY,10:00,12:00,Bases de Données,G1,CM,Fatou Ndiaye,B001
+TUESDAY,08:00,10:00,POO Java,G2,TD,Oumar Diallo,A102

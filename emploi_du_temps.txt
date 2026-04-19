@@ -1,0 +1,12 @@
+UNIV-SCHEDULER — Emploi du Temps
+================================
+
+LUNDI
+----------
+08:00 → 10:00 | POO Java (G1) | TD | Oumar Diallo | Salle A101
+10:00 → 12:00 | Bases de Données (G1) | CM | Fatou Ndiaye | Salle B001
+
+MARDI
+----------
+08:00 → 10:00 | POO Java (G2) | TD | Oumar Diallo | Salle A102
+
